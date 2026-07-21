@@ -37,4 +37,25 @@ describe("Nico Apple MCP identity", () => {
     expect(readme).not.toContain("/Users/nicolasmontero");
     expect(readme).not.toContain("# Cider");
   });
+
+  test("dependency overrides include current audit fixes", async () => {
+    const pkg = await Bun.file(`${ROOT}/package.json`).json();
+
+    expect(pkg.overrides.hono).toBe("4.12.31");
+    expect(pkg.overrides["body-parser"]).toBe("2.3.0");
+  });
+
+  test("macOS CI runs the repository validation gates", async () => {
+    const workflowPath = `${ROOT}/.github/workflows/ci.yml`;
+    const exists = await Bun.file(workflowPath).exists();
+
+    expect(exists).toBe(true);
+    if (!exists) return;
+    const workflow = await Bun.file(workflowPath).text();
+    expect(workflow).toContain("bun install --frozen-lockfile");
+    expect(workflow).toContain("bun run test");
+    expect(workflow).toContain("swiftc -typecheck src/helpers/nico-apple-cal.swift");
+    expect(workflow).toContain("bun run build:swift");
+    expect(workflow).toContain("bun audit");
+  });
 });
