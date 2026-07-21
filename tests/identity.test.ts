@@ -45,6 +45,13 @@ describe("Nico Apple MCP identity", () => {
     expect(pkg.overrides["body-parser"]).toBe("2.3.0");
   });
 
+  test("lockfile records the new workspace identity", async () => {
+    const lockfile = await Bun.file(`${ROOT}/bun.lock`).text();
+
+    expect(lockfile).toContain('"name": "nico-apple-mcp"');
+    expect(lockfile).not.toContain('"name": "cider"');
+  });
+
   test("macOS CI runs the repository validation gates", async () => {
     const workflowPath = `${ROOT}/.github/workflows/ci.yml`;
     const exists = await Bun.file(workflowPath).exists();
