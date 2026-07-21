@@ -78,6 +78,21 @@ describe("module structure", () => {
     expect(find("doctor").desc).toContain("Contacts");
   });
 
+  test("doctor converts Calendar helper failures into diagnostics", async () => {
+    const doctorModule = await import("../src/tools/doctor.ts") as unknown as Record<string, unknown>;
+    expect(typeof doctorModule.calendarHelperDiagnostic).toBe("function");
+    const diagnose = doctorModule.calendarHelperDiagnostic as (
+      helperReady: string,
+      runHelper: (...args: string[]) => Promise<string>,
+    ) => Promise<string>;
+
+    const result = await diagnose("OK calendar helper", async () => {
+      throw new Error("permission timed out");
+    });
+
+    expect(result).toBe("FAIL calendar helper doctor: permission timed out");
+  });
+
   test("calendar helper permission request has a bounded wait", () => {
     const source = readFileSync(resolve(import.meta.dir, "../src/helpers/cider-cal.swift"), "utf8");
 

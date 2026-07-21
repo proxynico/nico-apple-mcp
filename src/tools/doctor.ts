@@ -48,6 +48,18 @@ function permissionHint(appName: string, output: string): string {
   return output;
 }
 
+export async function calendarHelperDiagnostic(
+  helperReady: string,
+  runHelper: (...args: string[]) => Promise<string> = runCalendarHelper,
+): Promise<string> {
+  if (!helperReady.startsWith("OK")) return helperReady;
+  try {
+    return `OK calendar helper doctor: ${await runHelper("--doctor")}`;
+  } catch (err) {
+    return `FAIL calendar helper doctor: ${err instanceof Error ? err.message : "unknown error"}`;
+  }
+}
+
 const tools: ToolDef[] = [
   {
     name: "doctor",
@@ -55,9 +67,7 @@ const tools: ToolDef[] = [
     annotations: { readOnlyHint: true },
     handle: async () => {
       const helperReady = await checkExecutable(CAL_BIN);
-      const helperDoctor = helperReady.startsWith("OK")
-        ? `OK calendar helper doctor: ${await runCalendarHelper("--doctor")}`
-        : helperReady;
+      const helperDoctor = await calendarHelperDiagnostic(helperReady);
       const lines = [
         `OK bun: ${Bun.version}`,
         await runCheck("osascript", ["osascript", "-e", "return \"ok\""], "available"),
