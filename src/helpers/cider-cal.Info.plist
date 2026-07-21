@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.proxynico.cider.calendar-helper</string>
+  <key>CFBundleName</key>
+  <string>Cider Calendar Helper</string>
+  <key>CFBundleDisplayName</key>
+  <string>Cider Calendar Helper</string>
+  <key>CFBundleExecutable</key>
+  <string>cider-cal</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.1.0</string>
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>Cider needs full Calendar access to list, search, create, update, and delete events at your request.</string>
+  <key>NSCalendarsUsageDescription</key>
+  <string>Cider needs Calendar access to list, search, create, update, and delete events at your request.</string>
+</dict>
+</plist>
