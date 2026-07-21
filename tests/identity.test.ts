@@ -59,6 +59,7 @@ describe("Nico Apple MCP identity", () => {
     expect(exists).toBe(true);
     if (!exists) return;
     const workflow = await Bun.file(workflowPath).text();
+    expect(workflow).toContain("actions/checkout@v7");
     expect(workflow).toContain("bun install --frozen-lockfile");
     expect(workflow).toContain("bun run test");
     expect(workflow).toContain("swiftc -typecheck src/helpers/nico-apple-cal.swift");
