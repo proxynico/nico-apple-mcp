@@ -94,7 +94,7 @@ describe("module structure", () => {
   });
 
   test("calendar helper permission request has a bounded wait", () => {
-    const source = readFileSync(resolve(import.meta.dir, "../src/helpers/cider-cal.swift"), "utf8");
+    const source = readFileSync(resolve(import.meta.dir, "../src/helpers/nico-apple-cal.swift"), "utf8");
 
     expect(source).toContain("sem.wait(timeout:");
   });

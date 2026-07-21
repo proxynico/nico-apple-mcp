@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleIdentifier</key>
-  <string>com.proxynico.cider.calendar-helper</string>
+  <string>com.proxynico.nico-apple-mcp.calendar-helper</string>
   <key>CFBundleName</key>
-  <string>Cider Calendar Helper</string>
+  <string>Nico Apple MCP Calendar Helper</string>
   <key>CFBundleDisplayName</key>
-  <string>Cider Calendar Helper</string>
+  <string>Nico Apple MCP Calendar Helper</string>
   <key>CFBundleExecutable</key>
-  <string>cider-cal</string>
+  <string>nico-apple-cal</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleVersion</key>
@@ -17,8 +17,8 @@
   <key>CFBundleShortVersionString</key>
   <string>0.1.0</string>
   <key>NSCalendarsFullAccessUsageDescription</key>
-  <string>Cider needs full Calendar access to list, search, create, update, and delete events at your request.</string>
+  <string>Nico Apple MCP needs full Calendar access to list, search, create, update, and delete events at your request.</string>
   <key>NSCalendarsUsageDescription</key>
-  <string>Cider needs Calendar access to list, search, create, update, and delete events at your request.</string>
+  <string>Nico Apple MCP needs Calendar access to list, search, create, update, and delete events at your request.</string>
 </dict>
 </plist>

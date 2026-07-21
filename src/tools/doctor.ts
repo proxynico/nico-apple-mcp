@@ -36,7 +36,7 @@ function permissionSummary(helperOutput: string): string {
     return "FAIL calendar permission: restricted by macOS policy.";
   }
   if (helperOutput.includes("calendar authorization: writeOnly")) {
-    return "FAIL calendar permission: write-only; Cider needs full calendar access for search/update/delete.";
+    return "FAIL calendar permission: write-only; Nico Apple MCP needs full calendar access for search/update/delete.";
   }
   return "WARN calendar permission: not determined. Run a Calendar tool once and approve the macOS prompt.";
 }
@@ -63,7 +63,7 @@ export async function calendarHelperDiagnostic(
 const tools: ToolDef[] = [
   {
     name: "doctor",
-    desc: "Check local Cider runtime dependencies, helper readiness, and Notes/Contacts automation readiness",
+    desc: "Check local Nico Apple MCP runtime dependencies, helper readiness, and Notes/Contacts automation readiness",
     annotations: { readOnlyHint: true },
     handle: async () => {
       const helperReady = await checkExecutable(CAL_BIN);

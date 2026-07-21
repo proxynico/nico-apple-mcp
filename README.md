@@ -1,8 +1,8 @@
-# Cider
+# Nico Apple MCP
 
 Local Apple Calendar, Notes, and Contacts tools for Claude Code, Codex, and other AI assistants on macOS.
 
-Cider lets an AI assistant use the Apple apps already on your Mac.
+Nico Apple MCP lets an AI assistant use the Apple apps already on your Mac.
 
 It connects Claude Code, Codex, or another MCP client to:
 
@@ -13,7 +13,7 @@ It connects Claude Code, Codex, or another MCP client to:
 
 You install it once, register one MCP server, approve the normal macOS privacy prompts, and then your assistant can help with calendar events, notes, and contacts from your local machine.
 
-MCP is the tool/plugin connection used by assistants like Claude Code and Codex. In practice, Cider is the bridge between your assistant and your Apple apps.
+MCP is the tool/plugin connection used by assistants like Claude Code and Codex. In practice, Nico Apple MCP is the bridge between your assistant and your Apple apps.
 
 ## What It Can Do
 
@@ -41,47 +41,35 @@ Diagnostics:
 ## Install
 
 ```bash
-git clone https://github.com/proxynico/cider.git
-cd cider
+git clone https://github.com/proxynico/nico-apple-mcp.git
+cd nico-apple-mcp
 bun install
 bun run build:swift
 ```
 
-`bun run build:swift` creates the small signed **Cider Calendar Helper** app that macOS uses for Calendar permission.
+`bun run build:swift` creates the small signed **Nico Apple MCP Calendar Helper** app that macOS uses for Calendar permission.
 
 ## Register With Claude Code
 
 ```bash
-claude mcp add --scope user cider -- bun run /path/to/cider/src/index.ts
-claude mcp get cider
+claude mcp add --scope user nico-apple-mcp -- bun run /path/to/nico-apple-mcp/src/index.ts
+claude mcp get nico-apple-mcp
 ```
 
-Example for this local checkout:
-
-```bash
-claude mcp add --scope user cider -- bun run /Users/nicolasmontero/Developer/tools/cider/src/index.ts
-```
-
-Restart Claude Code after registering or updating Cider.
+Restart Claude Code after registering or updating Nico Apple MCP.
 
 ## Register With Codex
 
 ```bash
-codex mcp add cider -- bun run /path/to/cider/src/index.ts
+codex mcp add nico-apple-mcp -- bun run /path/to/nico-apple-mcp/src/index.ts
 codex mcp list
 ```
 
-Example for this local checkout:
-
-```bash
-codex mcp add cider -- bun run /Users/nicolasmontero/Developer/tools/cider/src/index.ts
-```
-
-Restart Codex after registering or updating Cider.
+Restart Codex after registering or updating Nico Apple MCP.
 
 ## Approve macOS Permissions
 
-macOS controls access to Calendar, Notes, and Contacts. Cider cannot bypass those prompts, and that is a good thing.
+macOS controls access to Calendar, Notes, and Contacts. Nico Apple MCP cannot bypass those prompts, and that is a good thing.
 
 After registration, ask your assistant to run:
 
@@ -103,7 +91,7 @@ If no prompt appears, open:
 System Settings > Privacy & Security > Calendars
 ```
 
-Make sure **CiderCalendarHelper** is enabled with **Full Access**.
+Make sure **NicoAppleMCPCalendarHelper** is enabled with **Full Access**.
 
 For Notes and Contacts, use:
 
@@ -141,9 +129,9 @@ notes_list_folders
 contacts_list
 ```
 
-If those work, Cider is ready.
+If those work, Nico Apple MCP is ready.
 
-## Using Calendar Safely
+## Using Records Safely
 
 Calendar search returns an `eventId`. Use that `eventId` when updating or deleting events.
 
@@ -156,6 +144,8 @@ Example flow:
 3. Use its `eventId` to update or delete it.
 
 Mutating Calendar, Notes, and Contacts tools also support `dryRun: true` where available, so your assistant can preview the action before changing anything.
+
+Notes and Contacts list/search results also include stable IDs. Prefer `noteId` and `contactId` for read, update, move, append, and delete operations. Exact title/name targeting remains available as a fallback, but duplicate titles or names are rejected rather than guessed.
 
 ## Dates
 
@@ -177,11 +167,11 @@ Run `doctor` first. It is the fastest way to see what is broken.
 If Calendar says `notDetermined` or denied:
 - run `calendar_list_calendars`
 - approve the prompt if it appears
-- check that **CiderCalendarHelper** is enabled in Calendar privacy settings
+- check that **NicoAppleMCPCalendarHelper** is enabled in Calendar privacy settings
 - restart the MCP client after changing permissions
 
 If Notes or Contacts fail:
-- check Automation permissions for the app running Cider
+- check Automation permissions for the app running Nico Apple MCP
 - restart the MCP client after changing permissions
 
 If tools disappeared or still use old behavior:
@@ -215,7 +205,7 @@ For a full live smoke test, also verify:
 
 ## How It Works
 
-Cider is one local MCP server. The TypeScript server exposes the tools. Calendar uses a small signed helper app because macOS grants Calendar permission to apps, not anonymous background scripts. Notes and Contacts use Apple automation.
+Nico Apple MCP is one local MCP server. The TypeScript server exposes the tools. Calendar uses a small signed helper app because macOS grants Calendar permission to apps, not anonymous background scripts. Notes and Contacts use Apple automation.
 
 No cloud account, API key, or external database is required. Access stays on your Mac and is controlled by macOS privacy settings.
 

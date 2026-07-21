@@ -14,18 +14,18 @@ const STARTUP_GRACE_MS = 1_000;
 test("calendar helper build embeds Calendar privacy usage descriptions", async () => {
   const pkg = await Bun.file(`${ROOT}/package.json`).json();
   const buildScript = pkg.scripts["build:swift"];
-  expect(buildScript).toContain("CiderCalendarHelper.app/Contents/MacOS");
-  expect(buildScript).toContain("src/helpers/cider-cal.Info.plist");
-  expect(buildScript).toContain("src/helpers/cider-cal.entitlements");
+  expect(buildScript).toContain("NicoAppleMCPCalendarHelper.app/Contents/MacOS");
+  expect(buildScript).toContain("src/helpers/nico-apple-cal.Info.plist");
+  expect(buildScript).toContain("src/helpers/nico-apple-cal.entitlements");
   expect(buildScript).toContain("--options runtime");
   expect(buildScript).toContain("codesign --force --sign -");
 
-  const plist = await Bun.file(`${ROOT}/src/helpers/cider-cal.Info.plist`).text();
-  expect(plist).toContain("com.proxynico.cider.calendar-helper");
+  const plist = await Bun.file(`${ROOT}/src/helpers/nico-apple-cal.Info.plist`).text();
+  expect(plist).toContain("com.proxynico.nico-apple-mcp.calendar-helper");
   expect(plist).toContain("NSCalendarsFullAccessUsageDescription");
   expect(plist).toContain("NSCalendarsUsageDescription");
 
-  const entitlements = await Bun.file(`${ROOT}/src/helpers/cider-cal.entitlements`).text();
+  const entitlements = await Bun.file(`${ROOT}/src/helpers/nico-apple-cal.entitlements`).text();
   expect(entitlements).toContain("com.apple.security.personal-information.calendars");
 });
 

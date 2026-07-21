@@ -21,12 +21,12 @@ struct Options {
 func usage() -> Never {
   fputs("""
 Usage:
-  cider-cal
-  cider-cal --doctor
-  cider-cal --start-ms <epoch-ms> --end-ms <epoch-ms> [--calendar <name>] [--query <text>]
-  cider-cal --create-event --title <title> --start-ms <epoch-ms> --end-ms <epoch-ms> [--calendar <name>] [--location <text>] [--notes <text>]
-  cider-cal --update-event (--event-id <id> | --title <title>) [--calendar <name>] [--window-start-ms <epoch-ms> --window-end-ms <epoch-ms>] [--new-title <title>] [--start-ms <epoch-ms>] [--end-ms <epoch-ms>] [--location <text>] [--notes <text>]
-  cider-cal --delete-event (--event-id <id> | --title <title>) [--calendar <name>] [--window-start-ms <epoch-ms> --window-end-ms <epoch-ms>]
+  nico-apple-cal
+  nico-apple-cal --doctor
+  nico-apple-cal --start-ms <epoch-ms> --end-ms <epoch-ms> [--calendar <name>] [--query <text>]
+  nico-apple-cal --create-event --title <title> --start-ms <epoch-ms> --end-ms <epoch-ms> [--calendar <name>] [--location <text>] [--notes <text>]
+  nico-apple-cal --update-event (--event-id <id> | --title <title>) [--calendar <name>] [--window-start-ms <epoch-ms> --window-end-ms <epoch-ms>] [--new-title <title>] [--start-ms <epoch-ms>] [--end-ms <epoch-ms>] [--location <text>] [--notes <text>]
+  nico-apple-cal --delete-event (--event-id <id> | --title <title>) [--calendar <name>] [--window-start-ms <epoch-ms> --window-end-ms <epoch-ms>]
 
 """, stderr)
   exit(1)
@@ -163,7 +163,7 @@ func requestCalendarAccess(_ store: EKEventStore) {
   }
 
   if sem.wait(timeout: .now() + 20) == .timedOut {
-    fputs("Calendar permission prompt timed out. Approve CiderCalendarHelper in System Settings > Privacy & Security > Calendars, then retry.\n", stderr)
+    fputs("Calendar permission prompt timed out. Approve NicoAppleMCPCalendarHelper in System Settings > Privacy & Security > Calendars, then retry.\n", stderr)
     exit(1)
   }
 
@@ -427,7 +427,7 @@ guard let options = parseOptions(args) else { usage() }
 let store = EKEventStore()
 
 if options.mode == "doctor" {
-  writeOutput("cider-cal ok\ncalendar authorization: \(calendarAuthorizationStatus())", options: options)
+  writeOutput("nico-apple-cal ok\ncalendar authorization: \(calendarAuthorizationStatus())", options: options)
   exit(0)
 }
 

@@ -34,7 +34,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 # compiled swift helpers
-src/helpers/cider-cal
-src/helpers/CiderCalendarHelper.app
+src/helpers/nico-apple-cal
+src/helpers/NicoAppleMCPCalendarHelper.app
 
 # bun (bun.lock committed for reproducible builds)

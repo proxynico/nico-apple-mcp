@@ -1,12 +1,20 @@
 {
-  "name": "cider",
+  "name": "nico-apple-mcp",
   "version": "0.1.0",
   "description": "Apple MCP server for Calendar, Notes, and Contacts on macOS",
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "packageManager": "bun@1.3.14",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/proxynico/nico-apple-mcp.git"
+  },
+  "bugs": "https://github.com/proxynico/nico-apple-mcp/issues",
+  "homepage": "https://github.com/proxynico/nico-apple-mcp#readme",
   "scripts": {
-    "build:swift": "mkdir -p src/helpers/CiderCalendarHelper.app/Contents/MacOS && swiftc -O src/helpers/cider-cal.swift -o src/helpers/CiderCalendarHelper.app/Contents/MacOS/cider-cal && cp src/helpers/cider-cal.Info.plist src/helpers/CiderCalendarHelper.app/Contents/Info.plist && codesign --force --sign - --options runtime --entitlements src/helpers/cider-cal.entitlements src/helpers/CiderCalendarHelper.app",
+    "build:swift": "mkdir -p src/helpers/NicoAppleMCPCalendarHelper.app/Contents/MacOS && swiftc -O src/helpers/nico-apple-cal.swift -o src/helpers/NicoAppleMCPCalendarHelper.app/Contents/MacOS/nico-apple-cal && cp src/helpers/nico-apple-cal.Info.plist src/helpers/NicoAppleMCPCalendarHelper.app/Contents/Info.plist && codesign --force --sign - --options runtime --entitlements src/helpers/nico-apple-cal.entitlements src/helpers/NicoAppleMCPCalendarHelper.app",
     "start": "bun run src/index.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bunx tsc --noEmit && bun test",

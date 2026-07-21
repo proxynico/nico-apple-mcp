@@ -5,8 +5,9 @@ import calendar from "./tools/calendar.ts";
 import notes from "./tools/notes.ts";
 import contacts from "./tools/contacts.ts";
 import doctor from "./tools/doctor.ts";
+import { SERVER_NAME, SERVER_VERSION } from "./meta.ts";
 
-const server = new McpServer({ name: "cider", version: "0.1.0" });
+const server = new McpServer({ name: SERVER_NAME, version: SERVER_VERSION });
 
 for (const def of [...calendar, ...notes, ...contacts, ...doctor]) {
   server.registerTool(def.name, {
