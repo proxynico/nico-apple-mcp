@@ -1,18 +1,42 @@
 import { dryRun, type ToolDef } from "../types.ts";
 import { runJXA, esc } from "../applescript.ts";
+import { z } from "zod";
 
 const FMT = `
   const lines = [];
   for (let i = 0; i < firstNames.length; i++) {
     const full = ((firstNames[i] || "") + " " + (lastNames[i] || "")).trim();
     const org = orgs[i] || "";
-    lines.push(org ? full + " \\u2014 " + org : full);
+    const summary = org ? full + " \\u2014 " + org : full;
+    lines.push(ids[i] + " | " + summary);
   }`;
 
-const findContact = (name: string, exact = false) => `
-  const matches = app.people.whose({ name: ${exact ? `"${name}"` : `{_contains: "${name}"}`} });
-  if (matches.length === 0) throw new Error("Contact not found: ${name}");
-  if (matches.length > 1) throw new Error("Multiple contacts match: ${name}");`;
+const hasSelector = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
+
+const requireContactSelector = (args: Record<string, unknown>, ctx: z.RefinementCtx): void => {
+  if (hasSelector(args.contactId) || hasSelector(args.name)) return;
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: "contactId or name must be provided",
+    path: ["contactId"],
+  });
+};
+
+const contactTarget = (args: Record<string, unknown>): Record<string, unknown> =>
+  args.contactId ? { contactId: args.contactId } : { name: args.name };
+
+const findContact = (args: Record<string, unknown>, exactName = false) => {
+  const contactId = args.contactId ? esc(args.contactId as string) : undefined;
+  const name = args.name ? esc(args.name as string) : undefined;
+  const selector = contactId
+    ? `{ id: "${contactId}" }`
+    : `{ name: ${exactName ? `"${name}"` : `{_contains: "${name}"}`} }`;
+  const label = contactId ?? name;
+  return `
+  const matches = app.people.whose(${selector});
+  if (matches.length === 0) throw new Error("Contact not found: ${label}");
+  if (matches.length > 1) throw new Error("Multiple contacts match: ${label}");`;
+};
 
 const tools: ToolDef[] = [
   {
@@ -31,7 +55,9 @@ const tools: ToolDef[] = [
         const firstNames = [];
         const lastNames = [];
         const orgs = [];
+        const ids = [];
         for (let i = 0; i < Math.min(count, people.length); i++) {
+          ids.push(people[i].id());
           firstNames.push(people[i].firstName());
           lastNames.push(people[i].lastName());
           orgs.push(people[i].organization());
@@ -53,6 +79,7 @@ const tools: ToolDef[] = [
       return runJXA(`
         const app = Application("Contacts");
         const results = app.people.whose({ name: {_contains: "${query}"} });
+        const ids = results.id();
         const firstNames = results.firstName();
         const lastNames = results.lastName();
         const orgs = results.organization();
@@ -63,18 +90,19 @@ const tools: ToolDef[] = [
   },
   {
     name: "contacts_get",
-    desc: "Get full details of a contact by name",
+    desc: "Get full details of a contact by id or name",
     annotations: { readOnlyHint: true },
     params: {
-      name: { type: "string", desc: "Contact name (first, last, or full)", req: true },
+      contactId: { type: "string", desc: "Apple Contacts identifier" },
+      name: { type: "string", desc: "Contact name (first, last, or full)" },
     },
+    superRefine: requireContactSelector,
     handle: async (a) => {
-      const name = esc(a.name as string);
       return runJXA(`
         const app = Application("Contacts");
-        ${findContact(name)}
+        ${findContact(a)}
         const p = matches[0];
-        const lines = ["Name: " + (p.firstName() || "") + " " + (p.lastName() || "")];
+        const lines = ["ID: " + p.id(), "Name: " + (p.firstName() || "") + " " + (p.lastName() || "")];
         const org = p.organization();
         if (org) lines.push("Organization: " + org);
         const title = p.jobTitle();
@@ -124,16 +152,17 @@ const tools: ToolDef[] = [
         app.people.push(p);
         ${after.join(" ")}
         app.save();
-        "Contact created: ${first} ${last}";
+        "Contact created: " + p.id() + " | ${first} ${last}";
       `);
     },
   },
   {
     name: "contacts_update",
-    desc: "Update an existing contact by exact full name",
+    desc: "Update an existing contact by id or exact full name",
     annotations: { destructiveHint: false },
     params: {
-      name: { type: "string", desc: "Exact full name of the contact", req: true },
+      contactId: { type: "string", desc: "Apple Contacts identifier" },
+      name: { type: "string", desc: "Exact full name of the contact" },
       newFirstName: { type: "string", desc: "New first name" },
       newLastName: { type: "string", desc: "New last name" },
       newEmail: { type: "string", desc: "New primary email address" },
@@ -142,8 +171,8 @@ const tools: ToolDef[] = [
       newTitle: { type: "string", desc: "New job title" },
       dryRun: { type: "boolean", desc: "Preview the update without changing Contacts" },
     },
+    superRefine: requireContactSelector,
     handle: async (a) => {
-      const name = esc(a.name as string);
       const updates: string[] = [];
       const updateDetails: Record<string, unknown> = {};
       if (a.newFirstName) {
@@ -183,34 +212,38 @@ const tools: ToolDef[] = [
         updateDetails.newPhone = a.newPhone;
       }
       if (!updates.length) throw new Error("No updates specified");
-      if (a.dryRun) return dryRun("update contact", { name: a.name, updates: updateDetails });
+      if (a.dryRun) return dryRun("update contact", { target: contactTarget(a), updates: updateDetails });
       return runJXA(`
         const app = Application("Contacts");
-        ${findContact(name, true)}
+        ${findContact(a, true)}
         const p = matches[0];
         ${updates.join("\n")}
         app.save();
-        "Contact updated: ${name}";
+        "Contact updated: " + p.id() + " | " + p.name();
       `);
     },
   },
   {
     name: "contacts_delete",
-    desc: "Delete a contact by exact full name",
+    desc: "Delete a contact by id or exact full name",
     annotations: { destructiveHint: true },
     params: {
-      name: { type: "string", desc: "Contact name (must match exactly)", req: true },
+      contactId: { type: "string", desc: "Apple Contacts identifier" },
+      name: { type: "string", desc: "Contact name (must match exactly)" },
       dryRun: { type: "boolean", desc: "Preview the deletion without changing Contacts" },
     },
+    superRefine: requireContactSelector,
     handle: async (a) => {
-      const name = esc(a.name as string);
-      if (a.dryRun) return dryRun("delete contact", { name: a.name });
+      if (a.dryRun) return dryRun("delete contact", { target: contactTarget(a) });
       return runJXA(`
         const app = Application("Contacts");
-        ${findContact(name, true)}
-        app.delete(matches[0]);
+        ${findContact(a, true)}
+        const p = matches[0];
+        const deletedId = p.id();
+        const deletedName = p.name();
+        app.delete(p);
         app.save();
-        "Contact deleted: ${name}";
+        "Contact deleted: " + deletedId + " | " + deletedName;
       `);
     },
   },

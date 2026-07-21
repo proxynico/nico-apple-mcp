@@ -84,6 +84,15 @@ describe("module structure", () => {
     expect(source).toContain("sem.wait(timeout:");
   });
 
+  test("Notes and Contacts list/search output includes stable ids", () => {
+    const notesSource = readFileSync(resolve(import.meta.dir, "../src/tools/notes.ts"), "utf8");
+    const contactsSource = readFileSync(resolve(import.meta.dir, "../src/tools/contacts.ts"), "utf8");
+
+    expect(notesSource).toContain('id of n & " | " & name of n');
+    expect(contactsSource).toContain("ids.push(people[i].id())");
+    expect(contactsSource).toContain("const ids = results.id()");
+  });
+
   test("read-only tools are annotated", () => {
     for (const name of readOnlyTools) {
       expect(find(name).annotations).toEqual({ readOnlyHint: true });
@@ -208,6 +217,14 @@ describe("schema accepts valid inputs", () => {
     expect(() => parse("notes_read", { title: "Notes" })).not.toThrow();
   });
 
+  test("Notes record tools accept noteId-only targets", () => {
+    expect(() => parse("notes_read", { noteId: "NOTE-1" })).not.toThrow();
+    expect(() => parse("notes_append", { noteId: "NOTE-1", text: "More text" })).not.toThrow();
+    expect(() => parse("notes_move", { noteId: "NOTE-1", folder: "Archive" })).not.toThrow();
+    expect(() => parse("notes_update", { noteId: "NOTE-1", newBody: "Updated" })).not.toThrow();
+    expect(() => parse("notes_delete", { noteId: "NOTE-1" })).not.toThrow();
+  });
+
   test("notes_search", () => {
     expect(() => parse("notes_search", { query: "meeting" })).not.toThrow();
   });
@@ -246,6 +263,12 @@ describe("schema accepts valid inputs", () => {
 
   test("contacts_get", () => {
     expect(() => parse("contacts_get", { name: "John Doe" })).not.toThrow();
+  });
+
+  test("Contacts record tools accept contactId-only targets", () => {
+    expect(() => parse("contacts_get", { contactId: "CONTACT-1" })).not.toThrow();
+    expect(() => parse("contacts_update", { contactId: "CONTACT-1", newOrg: "Acme" })).not.toThrow();
+    expect(() => parse("contacts_delete", { contactId: "CONTACT-1" })).not.toThrow();
   });
 
   test("contacts_create minimal", () => {
@@ -313,6 +336,13 @@ describe("schema rejects invalid inputs", () => {
 
   test("calendar_delete_event rejects missing event id and title in schema", () => {
     expect(ok("calendar_delete_event", {})).toBe(false);
+  });
+
+  test("Notes and Contacts record tools reject missing selectors", () => {
+    expect(ok("notes_read", {})).toBe(false);
+    expect(ok("notes_delete", {})).toBe(false);
+    expect(ok("contacts_get", {})).toBe(false);
+    expect(ok("contacts_delete", {})).toBe(false);
   });
 
   test("calendar_search_events rejects startDate >= endDate", async () => {
@@ -431,5 +461,21 @@ describe("dry-run handlers", () => {
     expect(JSON.parse(text.replace(/^Dry run: update contact\n/, "")).updates).toMatchObject({
       newOrg: "",
     });
+  });
+
+  test("Notes and Contacts dry-runs preserve id targets", async () => {
+    const noteText = await find("notes_update").handle({
+      noteId: "NOTE-1",
+      newBody: "Updated",
+      dryRun: true,
+    });
+    const contactText = await find("contacts_update").handle({
+      contactId: "CONTACT-1",
+      newOrg: "Acme",
+      dryRun: true,
+    });
+
+    expect(JSON.parse(noteText.replace(/^Dry run: update note\n/, "")).target).toEqual({ noteId: "NOTE-1" });
+    expect(JSON.parse(contactText.replace(/^Dry run: update contact\n/, "")).target).toEqual({ contactId: "CONTACT-1" });
   });
 });
