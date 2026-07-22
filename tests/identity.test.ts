@@ -56,6 +56,19 @@ describe("Nico Apple MCP identity", () => {
     expect(svg).not.toContain("<text");
   });
 
+  test("publishes the icon in the README and Calendar helper bundle", async () => {
+    const pkg = await Bun.file(`${ROOT}/package.json`).json();
+    const plist = await Bun.file(`${ROOT}/src/helpers/nico-apple-cal.Info.plist`).text();
+    const readme = await Bun.file(`${ROOT}/README.md`).text();
+
+    expect(readme).toContain('src="assets/nico-apple-mcp.png"');
+    expect(readme).toContain('alt="Nico Apple MCP icon"');
+    expect(plist).toContain("<key>CFBundleIconFile</key>");
+    expect(plist).toContain("<string>NicoAppleMCPCalendarHelper</string>");
+    expect(pkg.scripts["build:swift"]).toContain("Contents/Resources");
+    expect(pkg.scripts["build:swift"]).toContain("NicoAppleMCPCalendarHelper.icns");
+  });
+
   test("README uses public paths and repository names", async () => {
     const readme = await Bun.file(`${ROOT}/README.md`).text();
 

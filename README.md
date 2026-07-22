@@ -1,5 +1,9 @@
 # Nico Apple MCP
 
+<p align="center">
+  <img src="assets/nico-apple-mcp.png" width="160" alt="Nico Apple MCP icon">
+</p>
+
 Local Apple Calendar, Notes, and Contacts tools for Claude Code, Codex, and other AI assistants on macOS.
 
 Nico Apple MCP lets an AI assistant use the Apple apps already on your Mac.

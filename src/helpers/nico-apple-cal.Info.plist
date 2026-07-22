@@ -10,6 +10,8 @@
   <string>Nico Apple MCP Calendar Helper</string>
   <key>CFBundleExecutable</key>
   <string>nico-apple-cal</string>
+  <key>CFBundleIconFile</key>
+  <string>NicoAppleMCPCalendarHelper</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleVersion</key>
