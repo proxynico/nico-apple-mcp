@@ -4,9 +4,9 @@
 
 **Goal:** Add one approved Apple-app bridge mark for the project README, favicon use, and the macOS Calendar helper bundle.
 
-**Architecture:** Keep a hand-authored SVG as the only editable source of truth and generate all raster and macOS exports from it with ImageMagick and `iconutil`. Treat asset presence and helper integration as identity contracts in the existing Bun test suite.
+**Architecture:** Keep a hand-authored SVG as the only editable source of truth. Rasterize it with macOS ImageIO through `sips`, because this machine's internal ImageMagick SVG renderer turns gradients black; use ImageMagick only to resize the correct master raster and assemble the ICO, then use `iconutil` for the ICNS. Treat asset presence and helper integration as identity contracts in the existing Bun test suite.
 
-**Tech Stack:** SVG, ImageMagick, macOS `iconutil`, Bun tests, Apple Info.plist, Swift helper build
+**Tech Stack:** SVG, macOS `sips` and `iconutil`, ImageMagick, Bun tests, Apple Info.plist, Swift helper build
 
 ## Global Constraints
 
@@ -120,23 +120,24 @@ Run these commands from the repository root:
 ```bash
 mkdir -p assets
 icon_export_dir=$(mktemp -d)
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 512x512 assets/nico-apple-mcp.png
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 32x32 assets/favicon-32.png
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 16x16 "$icon_export_dir/favicon-16.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 32x32 "$icon_export_dir/favicon-32.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 48x48 "$icon_export_dir/favicon-48.png"
+sips -s format png assets/nico-apple-mcp.svg --out "$icon_export_dir/master.png"
+magick "$icon_export_dir/master.png" -resize 512x512 assets/nico-apple-mcp.png
+magick "$icon_export_dir/master.png" -resize 32x32 assets/favicon-32.png
+magick "$icon_export_dir/master.png" -resize 16x16 "$icon_export_dir/favicon-16.png"
+magick "$icon_export_dir/master.png" -resize 32x32 "$icon_export_dir/favicon-32.png"
+magick "$icon_export_dir/master.png" -resize 48x48 "$icon_export_dir/favicon-48.png"
 magick "$icon_export_dir/favicon-16.png" "$icon_export_dir/favicon-32.png" "$icon_export_dir/favicon-48.png" assets/favicon.ico
 mkdir -p "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 16x16 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_16x16.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 32x32 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_16x16@2x.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 32x32 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_32x32.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 64x64 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_32x32@2x.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 128x128 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_128x128.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 256x256 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_128x128@2x.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 256x256 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_256x256.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 512x512 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_256x256@2x.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 512x512 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_512x512.png"
-magick -background none -density 384 assets/nico-apple-mcp.svg -resize 1024x1024 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_512x512@2x.png"
+magick "$icon_export_dir/master.png" -resize 16x16 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_16x16.png"
+magick "$icon_export_dir/master.png" -resize 32x32 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_16x16@2x.png"
+magick "$icon_export_dir/master.png" -resize 32x32 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_32x32.png"
+magick "$icon_export_dir/master.png" -resize 64x64 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_32x32@2x.png"
+magick "$icon_export_dir/master.png" -resize 128x128 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_128x128.png"
+magick "$icon_export_dir/master.png" -resize 256x256 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_128x128@2x.png"
+magick "$icon_export_dir/master.png" -resize 256x256 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_256x256.png"
+magick "$icon_export_dir/master.png" -resize 512x512 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_256x256@2x.png"
+magick "$icon_export_dir/master.png" -resize 512x512 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_512x512.png"
+magick "$icon_export_dir/master.png" -resize 1024x1024 "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset/icon_512x512@2x.png"
 iconutil -c icns "$icon_export_dir/NicoAppleMCPCalendarHelper.iconset" -o src/helpers/NicoAppleMCPCalendarHelper.icns
 ```
 

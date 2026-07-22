@@ -30,6 +30,32 @@ describe("Nico Apple MCP identity", () => {
     expect(plist).toContain("Nico Apple MCP Calendar Helper");
   });
 
+  test("commits the approved project icon exports", async () => {
+    const assetPaths = [
+      "assets/nico-apple-mcp.svg",
+      "assets/nico-apple-mcp.png",
+      "assets/favicon-32.png",
+      "assets/favicon.ico",
+      "src/helpers/NicoAppleMCPCalendarHelper.icns",
+    ];
+
+    for (const assetPath of assetPaths) {
+      const asset = Bun.file(`${ROOT}/${assetPath}`);
+      expect(await asset.exists()).toBe(true);
+      if (await asset.exists()) {
+        expect(asset.size).toBeGreaterThan(100);
+      }
+    }
+
+    const svg = await Bun.file(`${ROOT}/assets/nico-apple-mcp.svg`).text();
+    expect(svg).toContain("#263149");
+    expect(svg).toContain("#090D18");
+    expect(svg).toContain("#FF5F57");
+    expect(svg).toContain("#FFD84A");
+    expect(svg).toContain("#54A7FF");
+    expect(svg).not.toContain("<text");
+  });
+
   test("README uses public paths and repository names", async () => {
     const readme = await Bun.file(`${ROOT}/README.md`).text();
 
