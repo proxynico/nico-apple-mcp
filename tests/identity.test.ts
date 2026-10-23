@@ -80,7 +80,7 @@ describe("Nico Apple MCP identity", () => {
   test("dependency overrides include current audit fixes", async () => {
     const pkg = await Bun.file(`${ROOT}/package.json`).json();
 
-    expect(pkg.overrides.hono).toBe("4.12.31");
+    expect(pkg.overrides.hono).toBe("4.13.13");
     expect(pkg.overrides["body-parser"]).toBe("2.3.0");
   });
 
