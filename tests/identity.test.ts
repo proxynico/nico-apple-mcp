@@ -81,7 +81,7 @@ describe("Nico Apple MCP identity", () => {
     const pkg = await Bun.file(`${ROOT}/package.json`).json();
 
     expect(pkg.overrides.hono).toBe("4.13.13");
-    expect(pkg.overrides["body-parser"]).toBe("2.3.0");
+    expect(pkg.overrides["body-parser"]).toBe("2.4.0");
   });
 
   test("lockfile records the new workspace identity", async () => {
