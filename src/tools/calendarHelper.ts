@@ -24,10 +24,13 @@ export async function runCalendarHelper(...args: string[]): Promise<string> {
       "nico-apple-cal",
       CAL_TIMEOUT,
     );
-    if (exitCode !== 0) throw new Error(stderr.trim() || stdout.trim() || `open exited ${exitCode}`);
+    // When the helper exits before `open -W` starts waiting, `open` can fail with "Unable to block on
+    // application" even though the helper finished, so its output decides the result.
     const [result, error] = await Promise.all([readText(outFile), readText(errFile)]);
     if (result) return result;
-    throw new Error(error || "nico-apple-cal did not return a result. Check Calendar permission for NicoAppleMCPCalendarHelper.");
+    if (error) throw new Error(error);
+    if (exitCode !== 0) throw new Error(stderr.trim() || stdout.trim() || `open exited ${exitCode}`);
+    throw new Error("nico-apple-cal did not return a result. Check Calendar permission for NicoAppleMCPCalendarHelper.");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
