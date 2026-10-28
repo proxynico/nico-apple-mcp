@@ -104,7 +104,8 @@ describe("module structure", () => {
     const contactsSource = readFileSync(resolve(import.meta.dir, "../src/tools/contacts.ts"), "utf8");
 
     expect(notesSource).toContain('item i of _ids & " | " & item i of _names');
-    expect(contactsSource).toContain('lines.push(ids[i] + " | "');
+    expect(contactsSource).toContain("ids.push(people[i].id())");
+    expect(contactsSource).toContain("const ids = results.id()");
   });
 
   test("read-only tools are annotated", () => {
