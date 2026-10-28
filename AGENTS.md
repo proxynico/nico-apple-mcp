@@ -1,17 +1,15 @@
 # AGENTS.md
 
-## Cursor Cloud specific instructions
-
-### Overview
+## Overview
 
 Nico Apple MCP is a single MCP (Model Context Protocol) server that exposes 22 tools for macOS Apple apps (Calendar, Notes, Contacts) via AppleScript, JXA, and EventKit. It uses **Bun** as its runtime, package manager, and test runner.
 
-### Prerequisites
+## Prerequisites
 
 - **Bun** is the required runtime (not Node.js). It is installed to `~/.bun/bin/bun`. Ensure `$HOME/.bun/bin` is on `PATH`.
 - The project uses `bun.lock` — always use `bun install` (not npm/yarn/pnpm).
 
-### Key commands
+## Key commands
 
 See `package.json` `scripts` for the full list. Summary:
 
@@ -23,14 +21,14 @@ See `package.json` `scripts` for the full list. Summary:
 | Start server | `bun run src/index.ts` |
 | Build Swift helper | `bun run build:swift` (requires macOS + swiftc) |
 
-### Linux / Cloud Agent caveats
+## Linux and cloud agents
 
 - **macOS-only tools**: `osascript` (AppleScript/JXA) and `swiftc` (EventKit helper) are unavailable on Linux. Tools that call these will return errors at runtime, which is expected.
 - **Tests should pass on Linux**: Validation, module structure, dry-run handler, and startup tests avoid native macOS APIs. Do not hard-code the test count in docs; use the current `bun run test` output.
 - **MCP server starts on Linux**: The stdio-transport server starts and responds to JSON-RPC messages. Use `printf '<JSON-RPC>\n' | bun run src/index.ts` to interact with it.
 - **`build:swift` will fail on Linux**: Skip this step in non-macOS environments.
 
-### Testing the MCP server interactively
+## Testing the MCP server interactively
 
 The server uses stdio transport. To test manually, pipe newline-delimited JSON-RPC messages:
 
