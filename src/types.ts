@@ -27,6 +27,17 @@ export interface ToolDef {
   handle(args: Record<string, unknown>): Promise<string>;
 }
 
+/** Require at least one non-blank string among `keys`, such as a record id or an exact title. */
+export function requireOneOf(...keys: string[]): ToolSuperRefine {
+  return (args, ctx) => {
+    const present = keys.some(key => {
+      const value = args[key];
+      return typeof value === "string" && value.trim() !== "";
+    });
+    if (!present) ctx.addIssue({ code: "custom", message: `${keys.join(" or ")} must be provided`, path: keys.slice(0, 1) });
+  };
+}
+
 /** Format a mutating tool's dry-run preview. */
 export function dryRun(action: string, details: Record<string, unknown>): string {
   return `Dry run: ${action}\n${JSON.stringify(details, null, 2)}`;

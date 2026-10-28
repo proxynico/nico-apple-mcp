@@ -1,6 +1,5 @@
-import { dryRun, type ToolDef } from "../types.ts";
+import { dryRun, requireOneOf, type ToolDef } from "../types.ts";
 import { runAppleScript, esc } from "../applescript.ts";
-import { z } from "zod";
 
 const escapeHtml = (text: string): string =>
   text
@@ -15,17 +14,6 @@ const renderNoteBody = (title: string, body: string): string => {
   const safeTitle = escapeHtml(title);
   const safeBody = renderBodyFragment(body);
   return `<h1>${safeTitle}</h1><br>${safeBody}`;
-};
-
-const hasSelector = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
-
-const requireNoteSelector = (args: Record<string, unknown>, ctx: z.RefinementCtx): void => {
-  if (hasSelector(args.noteId) || hasSelector(args.title)) return;
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    message: "noteId or title must be provided",
-    path: ["noteId"],
-  });
 };
 
 const noteTarget = (args: Record<string, unknown>): Record<string, unknown> =>
@@ -153,7 +141,7 @@ const tools: ToolDef[] = [
       noteId: { type: "string", desc: "Apple Notes identifier" },
       title: { type: "string", desc: "Exact note title" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       return runAppleScript(`
         tell application "Notes"
@@ -200,7 +188,7 @@ const tools: ToolDef[] = [
       text: { type: "string", desc: "Text to append", req: true },
       dryRun: { type: "boolean", desc: "Preview the append without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       const fragment = esc(renderBodyFragment(a.text as string));
       if (a.dryRun) return dryRun("append note", { target: noteTarget(a), text: a.text });
@@ -223,7 +211,7 @@ const tools: ToolDef[] = [
       folder: { type: "string", desc: "Destination folder", req: true },
       dryRun: { type: "boolean", desc: "Preview the move without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       const folder = esc(a.folder as string);
       if (a.dryRun) return dryRun("move note", { target: noteTarget(a), folder: a.folder });
@@ -248,7 +236,7 @@ const tools: ToolDef[] = [
       newBody: { type: "string", desc: "New body text (plain text)" },
       dryRun: { type: "boolean", desc: "Preview the update without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       const rawTitle = a.title as string | undefined;
       const newTitleRaw = a.newTitle as string | undefined;
@@ -286,7 +274,7 @@ const tools: ToolDef[] = [
       title: { type: "string", desc: "Exact note title to delete" },
       dryRun: { type: "boolean", desc: "Preview the deletion without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       if (a.dryRun) return dryRun("delete note", { target: noteTarget(a) });
       return runAppleScript(`
