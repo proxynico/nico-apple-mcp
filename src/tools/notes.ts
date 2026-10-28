@@ -37,6 +37,26 @@ const findFolder = (name: string) => `
   if (count of theFolders) > 1 then error "Multiple folders match: ${name}"
   set f to item 1 of theFolders`;
 
+/**
+ * AppleScript listing `id | name | modified` for `notes`, an object specifier such as `notes of f`,
+ * optionally only names containing `query`. Each property comes back for every note in one Apple Event,
+ * and the filter runs locally: per-note reads and `whose` filters took 10-30s for a few hundred notes.
+ */
+const listNotes = ({ notes, query, limit, empty }: { notes: string; query?: string; limit: number; empty: string }) => `
+  set {_ids, _names, _dates} to {id, name, modification date} of ${notes}
+  set _limit to ${limit}
+  set _count to 0
+  set output to ""
+  repeat with i from 1 to count of _ids
+    if _limit is not 0 and _count >= _limit then exit repeat
+    if ${query ? `item i of _names contains "${query}"` : "true"} then
+      set output to output & item i of _ids & " | " & item i of _names & " | " & ((item i of _dates) as string) & linefeed
+      set _count to _count + 1
+    end if
+  end repeat
+  if output is "" then return "${empty}"
+  return output`;
+
 const replaceH1InBody = (newHeading: string) => `
   set _oldBody to body of n
   set AppleScript's text item delimiters to "</h1>"
@@ -74,35 +94,16 @@ const tools: ToolDef[] = [
       limit: { type: "number", desc: "Max notes to return", int: true, min: 1, max: 500 },
     },
     handle: async (a) => {
-      const folder = a.folder ? esc(a.folder as string) : null;
-      const limit = a.limit ? Number(a.limit) : 0;
-      if (folder) return runAppleScript(`
-        tell application "Notes"
-          ${findFolder(folder)}
-          set _limit to ${limit}
-          set _count to 0
-          set output to ""
-          repeat with n in notes of f
-            if _limit is not 0 and _count >= _limit then exit repeat
-            set output to output & id of n & " | " & name of n & " | " & (modification date of n as string) & linefeed
-            set _count to _count + 1
-          end repeat
-          if output is "" then return "No notes in folder ${folder}"
-          return output
-        end tell
-      `);
+      const limit = (a.limit as number | undefined) ?? 0;
+      if (!a.folder) {
+        return runAppleScript(`tell application "Notes"${listNotes({ notes: "notes", limit, empty: "No notes found" })}
+        end tell`);
+      }
+      const folder = esc(a.folder as string);
       return runAppleScript(`
         tell application "Notes"
-          set _limit to ${limit}
-          set _count to 0
-          set output to ""
-          repeat with n in notes
-            if _limit is not 0 and _count >= _limit then exit repeat
-            set output to output & id of n & " | " & name of n & " | " & (modification date of n as string) & linefeed
-            set _count to _count + 1
-          end repeat
-          if output is "" then return "No notes found"
-          return output
+          ${findFolder(folder)}
+          ${listNotes({ notes: "notes of f", limit, empty: `No notes in folder ${folder}` })}
         end tell
       `);
     },
@@ -161,21 +162,9 @@ const tools: ToolDef[] = [
     },
     handle: async (a) => {
       const query = esc(a.query as string);
-      const limit = a.limit ? Number(a.limit) : 0;
-      return runAppleScript(`
-        tell application "Notes"
-          set _limit to ${limit}
-          set _count to 0
-          set output to ""
-          repeat with n in (every note whose name contains "${query}")
-            if _limit is not 0 and _count >= _limit then exit repeat
-            set output to output & id of n & " | " & name of n & " | " & (modification date of n as string) & linefeed
-            set _count to _count + 1
-          end repeat
-          if output is "" then return "No notes matching: ${query}"
-          return output
-        end tell
-      `);
+      const limit = (a.limit as number | undefined) ?? 0;
+      return runAppleScript(`tell application "Notes"${listNotes({ notes: "notes", query, limit, empty: `No notes matching: ${query}` })}
+        end tell`);
     },
   },
   {
