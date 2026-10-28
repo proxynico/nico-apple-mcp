@@ -1,7 +1,7 @@
-import { access } from "fs/promises";
+import { access, stat } from "fs/promises";
 import { constants } from "fs";
 import type { ToolDef } from "../types.ts";
-import { CAL_BIN, runCalendarHelper } from "./calendarHelper.ts";
+import { CAL_BIN, CAL_SOURCE, runCalendarHelper } from "./calendarHelper.ts";
 import { isPermissionError } from "../applescript.ts";
 import { spawnWithTimeout } from "../process.ts";
 const TIMEOUT = 5_000;
@@ -29,10 +29,12 @@ async function checkAutomation(appName: string, cmd: string[]): Promise<string> 
 async function checkExecutable(path: string): Promise<string> {
   try {
     await access(path, constants.X_OK);
-    return `OK calendar helper: ${path}`;
   } catch {
     return `FAIL calendar helper: missing or not executable at ${path}. Run bun run build:swift.`;
   }
+  const [built, source] = await Promise.all([stat(path), stat(CAL_SOURCE)]);
+  if (built.mtimeMs < source.mtimeMs) return "WARN calendar helper: older than nico-apple-cal.swift. Run bun run build:swift.";
+  return `OK calendar helper: ${path}`;
 }
 
 const PERMISSION_SUMMARY: Record<string, string> = {
@@ -52,7 +54,7 @@ export async function calendarHelperDiagnostic(
   helperReady: string,
   runHelper: (...args: string[]) => Promise<string> = runCalendarHelper,
 ): Promise<string[]> {
-  if (!helperReady.startsWith("OK")) return [helperReady];
+  if (helperReady.startsWith("FAIL")) return [helperReady];
   try {
     const output = await runHelper("--doctor");
     return [helperReady, `OK calendar helper doctor: ${output}`, permissionSummary(output)];
