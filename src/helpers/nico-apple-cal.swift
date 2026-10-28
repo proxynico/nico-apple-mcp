@@ -204,7 +204,6 @@ func eventJson(_ event: EKEvent) -> [String: Any] {
   ]
 }
 
-/// Every calendar with this title; fails if there is none.
 func calendars(named name: String, in store: EKEventStore) -> [EKCalendar] {
   let matches = store.calendars(for: .event).filter { $0.title == name }
   if matches.isEmpty { fail("Calendar not found: \(name)") }
@@ -223,13 +222,15 @@ func calendarForNewEvent(named name: String?, in store: EKEventStore) -> EKCalen
 
 /// Event occurrences overlapping start..<end, queried in 3-year chunks because EventKit caps a predicate at 4 years.
 /// Repeating events yield one entry per occurrence, all sharing one eventIdentifier.
+/// EventKit also returns events that only touch the range, such as one ending exactly at `start`, so they are dropped.
 func occurrences(from start: Date, to end: Date, calendars: [EKCalendar]?, store: EKEventStore) -> [EKEvent] {
   var matches: [EKEvent] = []
   var seen = Set<String>()
   var cursor = start
   while cursor < end {
     let next = min(Calendar.current.date(byAdding: .year, value: 3, to: cursor)!, end)
-    for event in store.events(matching: store.predicateForEvents(withStart: cursor, end: next, calendars: calendars)) {
+    let predicate = store.predicateForEvents(withStart: cursor, end: next, calendars: calendars)
+    for event in store.events(matching: predicate) where event.startDate < end && event.endDate > start {
       // An event spanning a chunk boundary comes back from both chunks.
       let key = "\(event.eventIdentifier ?? "")|\(event.calendar.calendarIdentifier)|\(event.startDate.timeIntervalSince1970)|\(event.title ?? "")"
       if seen.insert(key).inserted { matches.append(event) }
