@@ -27,7 +27,6 @@ export interface ToolDef {
   handle(args: Record<string, unknown>): Promise<string>;
 }
 
-/** Require at least one non-blank string among `keys`, such as a record id or an exact title. */
 export function requireOneOf(...keys: string[]): ToolSuperRefine {
   return (args, ctx) => {
     const present = keys.some(key => {

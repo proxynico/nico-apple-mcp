@@ -1,10 +1,6 @@
 const ISO_DATE_RE =
   /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})(?:T(?<hour>\d{2}):(?<minute>\d{2})(?::(?<second>\d{2})(?<fraction>\.\d{1,3})?)?(?<zone>Z|[+-]\d{2}:\d{2})?)?$/;
 
-/**
- * Parse a strict ISO 8601 date. Date-only values and times without a zone are local time.
- * Returns null for impossible dates, such as February 30 or a local time skipped by a DST change.
- */
 function parseIsoDate(value: string): Date | null {
   const g = ISO_DATE_RE.exec(value)?.groups;
   if (!g) return null;

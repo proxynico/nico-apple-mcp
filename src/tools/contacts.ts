@@ -3,17 +3,32 @@ import { runJXA, esc } from "../applescript.ts";
 
 /**
  * JXA listing `id | name — organization` for every contact, optionally only names containing `query`.
- * Each property comes back for every contact in one Apple Event, and the filter runs locally:
- * per-contact reads and `whose` filters took 10-25s for a few hundred contacts.
+ * Each property comes back for every contact in one Apple Event, where per-contact reads took 20-100s
+ * for a few hundred contacts. Contacts can reorder between those events, so the ids are read again and
+ * the snapshot retried if they moved. Names are matched with NSString's case-insensitive search, as
+ * Contacts' own `whose` filter does, because that filter took up to 30s.
  */
 const listPeople = ({ query, limit, empty }: { query?: string; limit?: number; empty: string }) => `
+  ObjC.import("Foundation");
   const people = Application("Contacts").people;
-  const ids = people.id(), firstNames = people.firstName(), lastNames = people.lastName(), orgs = people.organization();
-  const names = ${query ? "people.name()" : "null"};
-  const needle = "${query ?? ""}".toLowerCase();
+  let snapshot = null;
+  for (let attempt = 0; attempt < 3 && !snapshot; attempt++) {
+    const ids = people.id();
+    const fields = {
+      ids,
+      firstNames: people.firstName(),
+      lastNames: people.lastName(),
+      orgs: people.organization(),
+      names: ${query ? "people.name()" : "null"},
+    };
+    const after = people.id();
+    if (after.length === ids.length && after.every((id, i) => id === ids[i])) snapshot = fields;
+  }
+  if (!snapshot) throw new Error("Contacts changed while being read. Try again.");
+  const { ids, firstNames, lastNames, orgs, names } = snapshot;
   const lines = [];
   for (let i = 0; i < ids.length && lines.length < ${limit ?? "Infinity"}; i++) {
-    if (names && !(names[i] || "").toLowerCase().includes(needle)) continue;
+    if (names && $(names[i] || "").rangeOfStringOptions("${query ?? ""}", $.NSCaseInsensitiveSearch).location === $.NSNotFound) continue;
     const full = ((firstNames[i] || "") + " " + (lastNames[i] || "")).trim();
     lines.push(ids[i] + " | " + (orgs[i] ? full + " \\u2014 " + orgs[i] : full));
   }

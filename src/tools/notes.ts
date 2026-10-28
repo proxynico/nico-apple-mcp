@@ -40,10 +40,19 @@ const findFolder = (name: string) => `
 /**
  * AppleScript listing `id | name | modified` for `notes`, an object specifier such as `notes of f`,
  * optionally only names containing `query`. Each property comes back for every note in one Apple Event,
- * and the filter runs locally: per-note reads and `whose` filters took 10-30s for a few hundred notes.
+ * where per-note reads and `whose` filters took 10-30s for a few hundred notes. Notes can reorder
+ * between those events, so the ids are read again and the snapshot retried if they moved.
  */
 const listNotes = ({ notes, query, limit, empty }: { notes: string; query?: string; limit: number; empty: string }) => `
-  set {_ids, _names, _dates} to {id, name, modification date} of ${notes}
+  set _ids to missing value
+  repeat 3 times
+    set {_read, _names, _dates} to {id, name, modification date} of ${notes}
+    if (id of ${notes}) is _read then
+      set _ids to _read
+      exit repeat
+    end if
+  end repeat
+  if _ids is missing value then error "Notes changed while being read. Try again."
   set _limit to ${limit}
   set _count to 0
   set output to ""

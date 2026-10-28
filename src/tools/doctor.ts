@@ -48,7 +48,6 @@ function permissionSummary(helperOutput: string): string {
   return PERMISSION_SUMMARY[status] ?? "WARN calendar permission: not determined. Run a Calendar tool once and approve the macOS prompt.";
 }
 
-/** Doctor lines for the Calendar helper, given the result of the executable check. */
 export async function calendarHelperDiagnostic(
   helperReady: string,
   runHelper: (...args: string[]) => Promise<string> = runCalendarHelper,

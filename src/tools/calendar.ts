@@ -12,7 +12,6 @@ function assertBefore(a: Args, startKey: string, endKey: string): void {
   }
 }
 
-/** Helper flags and dry-run summary that select one existing event. */
 function targetEvent(a: Args): { args: string[]; target: Args } {
   const args: string[] = [];
   const target: Args = { title: a.title, calendar: a.calendar ?? "all" };
