@@ -1,61 +1,36 @@
-import { dryRun, type ToolDef } from "../types.ts";
+import { dryRun, requireOneOf, type ToolDef } from "../types.ts";
 import { isoToEpochMs } from "../dates.ts";
-import { z } from "zod";
 import { runCalendarHelper } from "./calendarHelper.ts";
 
-function toEpochMsArg(iso: string): string {
-  return String(isoToEpochMs(iso));
+type Args = Record<string, unknown>;
+
+const ms = (iso: unknown): string => String(isoToEpochMs(iso as string));
+
+function assertBefore(a: Args, startKey: string, endKey: string): void {
+  if (isoToEpochMs(a[startKey] as string) >= isoToEpochMs(a[endKey] as string)) {
+    throw new Error(`${startKey} must be before ${endKey}`);
+  }
 }
 
-function assertBefore(startIso: string, endIso: string, startName: string, endName: string): void {
-  const start = isoToEpochMs(startIso);
-  const end = isoToEpochMs(endIso);
-  if (start >= end) throw new Error(`${startName} must be before ${endName}`);
-}
-
-function addTargetArgs(args: string[], a: Record<string, unknown>): Record<string, unknown> {
-  const target: Record<string, unknown> = {
-    title: a.title,
-    calendar: a.calendar ?? "all",
-  };
-
+function targetEvent(a: Args): { args: string[]; target: Args } {
+  const args: string[] = [];
+  const target: Args = { title: a.title, calendar: a.calendar ?? "all" };
+  if (a.title) args.push("--title", a.title as string);
+  if (a.calendar) args.push("--calendar", a.calendar as string);
   if (a.eventId) {
     args.push("--event-id", a.eventId as string);
     target.eventId = a.eventId;
   }
-
-  if (!a.eventId && !a.title) {
-    throw new Error("eventId or title must be provided");
-  }
-
-  const hasWindowStart = Boolean(a.windowStart);
-  const hasWindowEnd = Boolean(a.windowEnd);
-  if (hasWindowStart !== hasWindowEnd) {
+  if (Boolean(a.windowStart) !== Boolean(a.windowEnd)) {
     throw new Error("windowStart and windowEnd must be provided together");
   }
-
-  if (hasWindowStart && hasWindowEnd) {
-    assertBefore(a.windowStart as string, a.windowEnd as string, "windowStart", "windowEnd");
-    args.push("--window-start-ms", toEpochMsArg(a.windowStart as string));
-    args.push("--window-end-ms", toEpochMsArg(a.windowEnd as string));
+  if (a.windowStart) {
+    assertBefore(a, "windowStart", "windowEnd");
+    args.push("--window-start-ms", ms(a.windowStart), "--window-end-ms", ms(a.windowEnd));
     target.windowStart = a.windowStart;
     target.windowEnd = a.windowEnd;
   }
-
-  return target;
-}
-
-function hasSelector(value: unknown): boolean {
-  return typeof value === "string" && value.trim() !== "";
-}
-
-function requireEventIdOrTitle(a: Record<string, unknown>, ctx: z.RefinementCtx): void {
-  if (hasSelector(a.eventId) || hasSelector(a.title)) return;
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    message: "eventId or title must be provided",
-    path: ["eventId"],
-  });
+  return { args, target };
 }
 
 const tools: ToolDef[] = [
@@ -76,11 +51,8 @@ const tools: ToolDef[] = [
       query: { type: "string", desc: "Text query for event title, location, or notes" },
     },
     handle: async (a) => {
-      assertBefore(a.startDate as string, a.endDate as string, "startDate", "endDate");
-      const args = [
-        "--start-ms", toEpochMsArg(a.startDate as string),
-        "--end-ms", toEpochMsArg(a.endDate as string),
-      ];
+      assertBefore(a, "startDate", "endDate");
+      const args = ["--start-ms", ms(a.startDate), "--end-ms", ms(a.endDate)];
       if (a.calendarName) args.push("--calendar", a.calendarName as string);
       if (a.query) args.push("--query", a.query as string);
       return runCalendarHelper(...args);
@@ -100,20 +72,10 @@ const tools: ToolDef[] = [
       dryRun: { type: "boolean", desc: "Preview the event without creating it" },
     },
     handle: async (a) => {
-      const title = a.title as string;
-      assertBefore(a.startDate as string, a.endDate as string, "startDate", "endDate");
-      const args = [
-        "--create-event",
-        "--title", title,
-        "--start-ms", toEpochMsArg(a.startDate as string),
-        "--end-ms", toEpochMsArg(a.endDate as string),
-      ];
-      if (a.calendar) args.push("--calendar", a.calendar as string);
-      if (a.location) args.push("--location", a.location as string);
-      if (a.notes) args.push("--notes", a.notes as string);
+      assertBefore(a, "startDate", "endDate");
       if (a.dryRun) {
         return dryRun("create calendar event", {
-          title,
+          title: a.title,
           calendar: a.calendar ?? "default",
           startDate: a.startDate,
           endDate: a.endDate,
@@ -121,6 +83,10 @@ const tools: ToolDef[] = [
           notes: a.notes ?? "",
         });
       }
+      const args = ["--create-event", "--title", a.title as string, "--start-ms", ms(a.startDate), "--end-ms", ms(a.endDate)];
+      if (a.calendar) args.push("--calendar", a.calendar as string);
+      if (a.location) args.push("--location", a.location as string);
+      if (a.notes) args.push("--notes", a.notes as string);
       return runCalendarHelper(...args);
     },
   },
@@ -141,37 +107,23 @@ const tools: ToolDef[] = [
       newNotes: { type: "string", desc: "New notes" },
       dryRun: { type: "boolean", desc: "Preview the update without changing Calendar" },
     },
-    superRefine: requireEventIdOrTitle,
+    superRefine: requireOneOf("eventId", "title"),
     handle: async (a) => {
-      const args = ["--update-event"];
-      const updates: Record<string, unknown> = {};
-      if (a.newStart && a.newEnd) assertBefore(a.newStart as string, a.newEnd as string, "newStart", "newEnd");
-      if (a.title) args.push("--title", a.title as string);
-      if (a.calendar) args.push("--calendar", a.calendar as string);
-      const target = addTargetArgs(args, a);
-      if (a.newTitle) {
-        args.push("--new-title", a.newTitle as string);
-        updates.newTitle = a.newTitle;
-      }
-      if (a.newStart) {
-        args.push("--start-ms", toEpochMsArg(a.newStart as string));
-        updates.newStart = a.newStart;
-      }
-      if (a.newEnd) {
-        args.push("--end-ms", toEpochMsArg(a.newEnd as string));
-        updates.newEnd = a.newEnd;
-      }
-      if (a.newLocation !== undefined) {
-        args.push("--location", a.newLocation as string);
-        updates.newLocation = a.newLocation;
-      }
-      if (a.newNotes !== undefined) {
-        args.push("--notes", a.newNotes as string);
-        updates.newNotes = a.newNotes;
-      }
+      if (a.newStart && a.newEnd) assertBefore(a, "newStart", "newEnd");
+      const { args, target } = targetEvent(a);
+      const updates: Args = {};
+      const update = (key: string, flag: string, value: string) => {
+        args.push(flag, value);
+        updates[key] = a[key];
+      };
+      if (a.newTitle) update("newTitle", "--new-title", a.newTitle as string);
+      if (a.newStart) update("newStart", "--start-ms", ms(a.newStart));
+      if (a.newEnd) update("newEnd", "--end-ms", ms(a.newEnd));
+      if (a.newLocation !== undefined) update("newLocation", "--location", a.newLocation as string);
+      if (a.newNotes !== undefined) update("newNotes", "--notes", a.newNotes as string);
       if (!Object.keys(updates).length) throw new Error("No updates specified");
       if (a.dryRun) return dryRun("update calendar event", { target, updates });
-      return runCalendarHelper(...args);
+      return runCalendarHelper("--update-event", ...args);
     },
   },
   {
@@ -186,14 +138,11 @@ const tools: ToolDef[] = [
       windowEnd: { type: "string", desc: "Target search window end (ISO 8601)", date: true },
       dryRun: { type: "boolean", desc: "Preview the deletion without changing Calendar" },
     },
-    superRefine: requireEventIdOrTitle,
+    superRefine: requireOneOf("eventId", "title"),
     handle: async (a) => {
-      const args = ["--delete-event"];
-      if (a.title) args.push("--title", a.title as string);
-      if (a.calendar) args.push("--calendar", a.calendar as string);
-      const target = addTargetArgs(args, a);
+      const { args, target } = targetEvent(a);
       if (a.dryRun) return dryRun("delete calendar event", { target });
-      return runCalendarHelper(...args);
+      return runCalendarHelper("--delete-event", ...args);
     },
   },
 ];

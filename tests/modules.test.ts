@@ -84,13 +84,13 @@ describe("module structure", () => {
     const diagnose = doctorModule.calendarHelperDiagnostic as (
       helperReady: string,
       runHelper: (...args: string[]) => Promise<string>,
-    ) => Promise<string>;
+    ) => Promise<string[]>;
 
     const result = await diagnose("OK calendar helper", async () => {
       throw new Error("permission timed out");
     });
 
-    expect(result).toBe("FAIL calendar helper doctor: permission timed out");
+    expect(result).toEqual(["OK calendar helper", "FAIL calendar helper doctor: permission timed out"]);
   });
 
   test("calendar helper permission request has a bounded wait", () => {
@@ -103,7 +103,7 @@ describe("module structure", () => {
     const notesSource = readFileSync(resolve(import.meta.dir, "../src/tools/notes.ts"), "utf8");
     const contactsSource = readFileSync(resolve(import.meta.dir, "../src/tools/contacts.ts"), "utf8");
 
-    expect(notesSource).toContain('id of n & " | " & name of n');
+    expect(notesSource).toContain('item i of _ids & " | " & item i of _names');
     expect(contactsSource).toContain("ids.push(people[i].id())");
     expect(contactsSource).toContain("const ids = results.id()");
   });

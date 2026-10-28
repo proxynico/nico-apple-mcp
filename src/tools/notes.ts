@@ -1,6 +1,5 @@
-import { dryRun, type ToolDef } from "../types.ts";
+import { dryRun, requireOneOf, type ToolDef } from "../types.ts";
 import { runAppleScript, esc } from "../applescript.ts";
-import { z } from "zod";
 
 const escapeHtml = (text: string): string =>
   text
@@ -15,17 +14,6 @@ const renderNoteBody = (title: string, body: string): string => {
   const safeTitle = escapeHtml(title);
   const safeBody = renderBodyFragment(body);
   return `<h1>${safeTitle}</h1><br>${safeBody}`;
-};
-
-const hasSelector = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
-
-const requireNoteSelector = (args: Record<string, unknown>, ctx: z.RefinementCtx): void => {
-  if (hasSelector(args.noteId) || hasSelector(args.title)) return;
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    message: "noteId or title must be provided",
-    path: ["noteId"],
-  });
 };
 
 const noteTarget = (args: Record<string, unknown>): Record<string, unknown> =>
@@ -48,6 +36,35 @@ const findFolder = (name: string) => `
   if (count of theFolders) is 0 then error "Folder not found: ${name}"
   if (count of theFolders) > 1 then error "Multiple folders match: ${name}"
   set f to item 1 of theFolders`;
+
+/**
+ * AppleScript listing `id | name | modified` for `notes`, an object specifier such as `notes of f`,
+ * optionally only names containing `query`. Each property comes back for every note in one Apple Event,
+ * where per-note reads and `whose` filters took 10-30s for a few hundred notes. Notes can reorder
+ * between those events, so the ids are read again and the snapshot retried if they moved.
+ */
+const listNotes = ({ notes, query, limit, empty }: { notes: string; query?: string; limit: number; empty: string }) => `
+  set _ids to missing value
+  repeat 3 times
+    set {_read, _names, _dates} to {id, name, modification date} of ${notes}
+    if (id of ${notes}) is _read then
+      set _ids to _read
+      exit repeat
+    end if
+  end repeat
+  if _ids is missing value then error "Notes changed while being read. Try again."
+  set _limit to ${limit}
+  set _count to 0
+  set output to ""
+  repeat with i from 1 to count of _ids
+    if _limit is not 0 and _count >= _limit then exit repeat
+    if ${query ? `item i of _names contains "${query}"` : "true"} then
+      set output to output & item i of _ids & " | " & item i of _names & " | " & ((item i of _dates) as string) & linefeed
+      set _count to _count + 1
+    end if
+  end repeat
+  if output is "" then return "${empty}"
+  return output`;
 
 const replaceH1InBody = (newHeading: string) => `
   set _oldBody to body of n
@@ -86,35 +103,16 @@ const tools: ToolDef[] = [
       limit: { type: "number", desc: "Max notes to return", int: true, min: 1, max: 500 },
     },
     handle: async (a) => {
-      const folder = a.folder ? esc(a.folder as string) : null;
-      const limit = a.limit ? Number(a.limit) : 0;
-      if (folder) return runAppleScript(`
-        tell application "Notes"
-          ${findFolder(folder)}
-          set _limit to ${limit}
-          set _count to 0
-          set output to ""
-          repeat with n in notes of f
-            if _limit is not 0 and _count >= _limit then exit repeat
-            set output to output & id of n & " | " & name of n & " | " & (modification date of n as string) & linefeed
-            set _count to _count + 1
-          end repeat
-          if output is "" then return "No notes in folder ${folder}"
-          return output
-        end tell
-      `);
+      const limit = (a.limit as number | undefined) ?? 0;
+      if (!a.folder) {
+        return runAppleScript(`tell application "Notes"${listNotes({ notes: "notes", limit, empty: "No notes found" })}
+        end tell`);
+      }
+      const folder = esc(a.folder as string);
       return runAppleScript(`
         tell application "Notes"
-          set _limit to ${limit}
-          set _count to 0
-          set output to ""
-          repeat with n in notes
-            if _limit is not 0 and _count >= _limit then exit repeat
-            set output to output & id of n & " | " & name of n & " | " & (modification date of n as string) & linefeed
-            set _count to _count + 1
-          end repeat
-          if output is "" then return "No notes found"
-          return output
+          ${findFolder(folder)}
+          ${listNotes({ notes: "notes of f", limit, empty: `No notes in folder ${folder}` })}
         end tell
       `);
     },
@@ -153,7 +151,7 @@ const tools: ToolDef[] = [
       noteId: { type: "string", desc: "Apple Notes identifier" },
       title: { type: "string", desc: "Exact note title" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       return runAppleScript(`
         tell application "Notes"
@@ -173,21 +171,9 @@ const tools: ToolDef[] = [
     },
     handle: async (a) => {
       const query = esc(a.query as string);
-      const limit = a.limit ? Number(a.limit) : 0;
-      return runAppleScript(`
-        tell application "Notes"
-          set _limit to ${limit}
-          set _count to 0
-          set output to ""
-          repeat with n in (every note whose name contains "${query}")
-            if _limit is not 0 and _count >= _limit then exit repeat
-            set output to output & id of n & " | " & name of n & " | " & (modification date of n as string) & linefeed
-            set _count to _count + 1
-          end repeat
-          if output is "" then return "No notes matching: ${query}"
-          return output
-        end tell
-      `);
+      const limit = (a.limit as number | undefined) ?? 0;
+      return runAppleScript(`tell application "Notes"${listNotes({ notes: "notes", query, limit, empty: `No notes matching: ${query}` })}
+        end tell`);
     },
   },
   {
@@ -200,7 +186,7 @@ const tools: ToolDef[] = [
       text: { type: "string", desc: "Text to append", req: true },
       dryRun: { type: "boolean", desc: "Preview the append without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       const fragment = esc(renderBodyFragment(a.text as string));
       if (a.dryRun) return dryRun("append note", { target: noteTarget(a), text: a.text });
@@ -223,7 +209,7 @@ const tools: ToolDef[] = [
       folder: { type: "string", desc: "Destination folder", req: true },
       dryRun: { type: "boolean", desc: "Preview the move without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       const folder = esc(a.folder as string);
       if (a.dryRun) return dryRun("move note", { target: noteTarget(a), folder: a.folder });
@@ -248,7 +234,7 @@ const tools: ToolDef[] = [
       newBody: { type: "string", desc: "New body text (plain text)" },
       dryRun: { type: "boolean", desc: "Preview the update without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       const rawTitle = a.title as string | undefined;
       const newTitleRaw = a.newTitle as string | undefined;
@@ -286,7 +272,7 @@ const tools: ToolDef[] = [
       title: { type: "string", desc: "Exact note title to delete" },
       dryRun: { type: "boolean", desc: "Preview the deletion without changing Notes" },
     },
-    superRefine: requireNoteSelector,
+    superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
       if (a.dryRun) return dryRun("delete note", { target: noteTarget(a) });
       return runAppleScript(`

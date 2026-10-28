@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
@@ -18,7 +19,6 @@ jobs:
           bun-version: latest
       - run: bun install --frozen-lockfile
       - run: bun run test
-      - run: swiftc -typecheck src/helpers/nico-apple-cal.swift
       - run: bun run build:swift
       - run: bun audit
       - run: git diff --check

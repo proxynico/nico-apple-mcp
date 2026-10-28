@@ -1,6 +1,5 @@
-import { dryRun, type ToolDef } from "../types.ts";
+import { dryRun, requireOneOf, type ToolDef } from "../types.ts";
 import { runJXA, esc } from "../applescript.ts";
-import { z } from "zod";
 
 const FMT = `
   const lines = [];
@@ -10,17 +9,6 @@ const FMT = `
     const summary = org ? full + " \\u2014 " + org : full;
     lines.push(ids[i] + " | " + summary);
   }`;
-
-const hasSelector = (value: unknown): boolean => typeof value === "string" && value.trim() !== "";
-
-const requireContactSelector = (args: Record<string, unknown>, ctx: z.RefinementCtx): void => {
-  if (hasSelector(args.contactId) || hasSelector(args.name)) return;
-  ctx.addIssue({
-    code: z.ZodIssueCode.custom,
-    message: "contactId or name must be provided",
-    path: ["contactId"],
-  });
-};
 
 const contactTarget = (args: Record<string, unknown>): Record<string, unknown> =>
   args.contactId ? { contactId: args.contactId } : { name: args.name };
@@ -96,7 +84,7 @@ const tools: ToolDef[] = [
       contactId: { type: "string", desc: "Apple Contacts identifier" },
       name: { type: "string", desc: "Contact name (first, last, or full)" },
     },
-    superRefine: requireContactSelector,
+    superRefine: requireOneOf("contactId", "name"),
     handle: async (a) => {
       return runJXA(`
         const app = Application("Contacts");
@@ -171,7 +159,7 @@ const tools: ToolDef[] = [
       newTitle: { type: "string", desc: "New job title" },
       dryRun: { type: "boolean", desc: "Preview the update without changing Contacts" },
     },
-    superRefine: requireContactSelector,
+    superRefine: requireOneOf("contactId", "name"),
     handle: async (a) => {
       const updates: string[] = [];
       const updateDetails: Record<string, unknown> = {};
@@ -232,7 +220,7 @@ const tools: ToolDef[] = [
       name: { type: "string", desc: "Contact name (must match exactly)" },
       dryRun: { type: "boolean", desc: "Preview the deletion without changing Contacts" },
     },
-    superRefine: requireContactSelector,
+    superRefine: requireOneOf("contactId", "name"),
     handle: async (a) => {
       if (a.dryRun) return dryRun("delete contact", { target: contactTarget(a) });
       return runJXA(`

@@ -2,7 +2,6 @@
   "name": "nico-apple-mcp",
   "version": "0.1.0",
   "description": "Apple MCP server for Calendar, Notes, and Contacts on macOS",
-  "module": "src/index.ts",
   "type": "module",
   "private": true,
   "license": "MIT",
