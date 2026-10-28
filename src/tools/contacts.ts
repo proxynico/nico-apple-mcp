@@ -1,14 +1,53 @@
 import { dryRun, requireOneOf, type ToolDef } from "../types.ts";
 import { runJXA, esc } from "../applescript.ts";
 
-const FMT = `
+/**
+ * JXA listing `id | name — organization` for every contact, optionally only those whose name contains
+ * `query`. One Apple Event returns every contact's vCard, which holds that contact's id and names
+ * together. Reading each contact's properties one by one took 20-100s, and joining per-property reads
+ * by position paired ids with other contacts' names while Contacts was being edited. vCards turn
+ * carriage returns into line feeds, so a contact whose fields hold a line break is read directly, and
+ * left out if it was deleted after the cards were read (error -1728, no such object). Names are
+ * matched with NSString's case-insensitive search, as Contacts' own `whose` filter does, because that
+ * filter took up to 30s.
+ */
+const listPeople = ({ query, limit, empty }: { query?: string; limit?: number; empty: string }) => `
+  ObjC.import("Foundation");
+  const components = value => {
+    const parts = [""];
+    for (let i = 0; i < value.length; i++) {
+      if (value[i] === ";") parts.push("");
+      else if (value[i] === "\\\\" && i + 1 < value.length) parts[parts.length - 1] += /n/i.test(value[++i]) ? "\\n" : value[i];
+      else parts[parts.length - 1] += value[i];
+    }
+    return parts;
+  };
+  const people = Application("Contacts").people;
   const lines = [];
-  for (let i = 0; i < firstNames.length; i++) {
-    const full = ((firstNames[i] || "") + " " + (lastNames[i] || "")).trim();
-    const org = orgs[i] || "";
-    const summary = org ? full + " \\u2014 " + org : full;
-    lines.push(ids[i] + " | " + summary);
-  }`;
+  for (const card of people.vcard()) {
+    if (lines.length >= ${limit ?? "Infinity"}) break;
+    const props = {};
+    for (const line of card.replace(/\\r?\\n[ \\t]/g, "").split(/\\r?\\n/)) {
+      const m = /^(?:[\\w-]+\\.)?([\\w-]+)(?:;[^:]*)?:(.*)$/s.exec(line);
+      if (m && !(m[1].toUpperCase() in props)) props[m[1].toUpperCase()] = m[2];
+    }
+    const id = props["X-ABUID"] || "";
+    const [lastName = "", firstName = ""] = components(props.N || "");
+    let fields = { firstName, lastName, org: components(props.ORG || "")[0], name: components(props.FN || "").join(";") };
+    if (Object.values(fields).some(value => value.includes("\\n"))) {
+      const p = people.byId(id);
+      try {
+        fields = { firstName: p.firstName() || "", lastName: p.lastName() || "", org: p.organization() || "", name: p.name() || "" };
+      } catch (e) {
+        if (e.errorNumber === -1728) continue;
+        throw e;
+      }
+    }
+    ${query ? `if ($(fields.name).rangeOfStringOptions("${query}", $.NSCaseInsensitiveSearch).location === $.NSNotFound) continue;` : ""}
+    const full = (fields.firstName + " " + fields.lastName).trim();
+    lines.push(id + " | " + (fields.org ? full + " \\u2014 " + fields.org : full));
+  }
+  lines.length === 0 ? "${empty}" : lines.join("\\n");`;
 
 const contactTarget = (args: Record<string, unknown>): Record<string, unknown> =>
   args.contactId ? { contactId: args.contactId } : { name: args.name };
@@ -34,26 +73,7 @@ const tools: ToolDef[] = [
     params: {
       limit: { type: "number", desc: "Max contacts to return (default: all)", int: true, min: 1, max: 1000 },
     },
-    handle: async (a) => {
-      const lim = a.limit as number | undefined;
-      return runJXA(`
-        const app = Application("Contacts");
-        const people = app.people();
-        const count = ${lim ?? "people.length"};
-        const firstNames = [];
-        const lastNames = [];
-        const orgs = [];
-        const ids = [];
-        for (let i = 0; i < Math.min(count, people.length); i++) {
-          ids.push(people[i].id());
-          firstNames.push(people[i].firstName());
-          lastNames.push(people[i].lastName());
-          orgs.push(people[i].organization());
-        }
-        ${FMT}
-        lines.length === 0 ? "No contacts found" : lines.join("\\n");
-      `);
-    },
+    handle: async (a) => runJXA(listPeople({ limit: a.limit as number | undefined, empty: "No contacts found" })),
   },
   {
     name: "contacts_search",
@@ -64,16 +84,7 @@ const tools: ToolDef[] = [
     },
     handle: async (a) => {
       const query = esc(a.query as string);
-      return runJXA(`
-        const app = Application("Contacts");
-        const results = app.people.whose({ name: {_contains: "${query}"} });
-        const ids = results.id();
-        const firstNames = results.firstName();
-        const lastNames = results.lastName();
-        const orgs = results.organization();
-        ${FMT}
-        lines.length === 0 ? "No contacts matching: ${query}" : lines.join("\\n");
-      `);
+      return runJXA(listPeople({ query, empty: `No contacts matching: ${query}` }));
     },
   },
   {
