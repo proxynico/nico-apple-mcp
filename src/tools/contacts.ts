@@ -5,9 +5,10 @@ import { runJXA, esc } from "../applescript.ts";
  * JXA listing `id | name — organization` for every contact, optionally only those whose name contains
  * `query`. One Apple Event returns every contact's vCard, which holds that contact's id and names
  * together. Reading each contact's properties one by one took 20-100s, and joining per-property reads
- * by position paired ids with other contacts' names while Contacts was being edited. Names are matched
- * with NSString's case-insensitive search, as Contacts' own `whose` filter does, because that filter
- * took up to 30s.
+ * by position paired ids with other contacts' names while Contacts was being edited. vCards turn
+ * carriage returns into line feeds, so a contact whose fields hold a line break is read directly. Names
+ * are matched with NSString's case-insensitive search, as Contacts' own `whose` filter does, because
+ * that filter took up to 30s.
  */
 const listPeople = ({ query, limit, empty }: { query?: string; limit?: number; empty: string }) => `
   ObjC.import("Foundation");
@@ -20,19 +21,25 @@ const listPeople = ({ query, limit, empty }: { query?: string; limit?: number; e
     }
     return parts;
   };
+  const people = Application("Contacts").people;
   const lines = [];
-  for (const card of Application("Contacts").people.vcard()) {
+  for (const card of people.vcard()) {
     if (lines.length >= ${limit ?? "Infinity"}) break;
     const props = {};
     for (const line of card.replace(/\\r?\\n[ \\t]/g, "").split(/\\r?\\n/)) {
-      const m = /^(?:[\\w-]+\\.)?([\\w-]+)(?:;[^:]*)?:(.*)$/.exec(line);
+      const m = /^(?:[\\w-]+\\.)?([\\w-]+)(?:;[^:]*)?:(.*)$/s.exec(line);
       if (m && !(m[1].toUpperCase() in props)) props[m[1].toUpperCase()] = m[2];
     }
-    ${query ? `if ($(components(props.FN || "").join(";")).rangeOfStringOptions("${query}", $.NSCaseInsensitiveSearch).location === $.NSNotFound) continue;` : ""}
-    const [lastName, firstName] = components(props.N || "");
-    const full = ((firstName || "") + " " + (lastName || "")).trim();
-    const org = components(props.ORG || "")[0];
-    lines.push((props["X-ABUID"] || "") + " | " + (org ? full + " \\u2014 " + org : full));
+    const id = props["X-ABUID"] || "";
+    const [lastName = "", firstName = ""] = components(props.N || "");
+    let fields = { firstName, lastName, org: components(props.ORG || "")[0], name: components(props.FN || "").join(";") };
+    if (Object.values(fields).some(value => value.includes("\\n"))) {
+      const p = people.byId(id);
+      fields = { firstName: p.firstName() || "", lastName: p.lastName() || "", org: p.organization() || "", name: p.name() || "" };
+    }
+    ${query ? `if ($(fields.name).rangeOfStringOptions("${query}", $.NSCaseInsensitiveSearch).location === $.NSNotFound) continue;` : ""}
+    const full = (fields.firstName + " " + fields.lastName).trim();
+    lines.push(id + " | " + (fields.org ? full + " \\u2014 " + fields.org : full));
   }
   lines.length === 0 ? "${empty}" : lines.join("\\n");`;
 
