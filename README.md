@@ -18,7 +18,7 @@
   <img src="assets/demo.gif" width="760" alt="An assistant asked to prep tomorrow's meetings calls meeting_prep and gets each meeting with its attendees matched to Contacts">
 </p>
 
-Nico Apple MCP is a local [MCP](https://modelcontextprotocol.io/) server. It connects Claude Code, Codex, Claude Desktop, or any other MCP client to the Calendar, Notes, and Contacts apps already on your Mac. Nothing leaves your Mac, and there's no account or API key.
+Nico Apple MCP is a local [MCP](https://modelcontextprotocol.io/) server. It connects Claude Code, Codex, Claude Desktop, or any other MCP client to the Calendar, Notes, and Contacts apps already on your Mac. The server runs on your Mac and makes no network calls of its own, and there's no account or API key.
 
 ## Why this one
 
@@ -31,7 +31,7 @@ Nico Apple MCP is a local [MCP](https://modelcontextprotocol.io/) server. It con
   | Task | Time |
   | --- | --- |
   | A month of calendar events | 0.07 s |
-  | List 220 notes | 0.2 s |
+  | List 227 notes | 0.2 s |
   | List 335 contacts | 1.5 s |
   | Brief a day of meetings | 0.6 s |
 

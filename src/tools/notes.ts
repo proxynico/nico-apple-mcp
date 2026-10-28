@@ -29,7 +29,7 @@ export function createNote({ title, body, folder }: { title: string; body: strin
   `);
 }
 
-const noteTarget =(args: Record<string, unknown>): Record<string, unknown> =>
+const noteTarget = (args: Record<string, unknown>): Record<string, unknown> =>
   args.noteId ? { noteId: args.noteId } : { title: args.title };
 
 const findNote = (args: Record<string, unknown>) => {
