@@ -6,9 +6,10 @@ import type { ToolDef } from "../src/types.ts";
 import calendar from "../src/tools/calendar.ts";
 import notes from "../src/tools/notes.ts";
 import contacts from "../src/tools/contacts.ts";
+import meetingPrep from "../src/tools/meetingPrep.ts";
 import doctor from "../src/tools/doctor.ts";
 
-const allTools = [...calendar, ...notes, ...contacts, ...doctor];
+const allTools = [...calendar, ...notes, ...contacts, ...meetingPrep, ...doctor];
 const find = (name: string) => allTools.find(t => t.name === name)!;
 const parse = (name: string, input: unknown) => toZodSchema(find(name)).parse(input);
 const ok = (name: string, input: unknown) => toZodSchema(find(name)).safeParse(input).success;
@@ -17,6 +18,7 @@ const modules: [string, ToolDef[]][] = [
   ["calendar", calendar],
   ["notes", notes],
   ["contacts", contacts],
+  ["meetingPrep", meetingPrep],
   ["doctor", doctor],
 ];
 
@@ -32,6 +34,7 @@ const mutatingTools = [
   "contacts_create",
   "contacts_update",
   "contacts_delete",
+  "meeting_prep",
 ];
 
 const readOnlyTools = [
