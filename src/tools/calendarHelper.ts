@@ -5,6 +5,7 @@ import { spawnWithTimeout } from "../process.ts";
 
 export const CAL_APP = resolve(dirname(import.meta.path), "../helpers/NicoAppleMCPCalendarHelper.app");
 export const CAL_BIN = resolve(CAL_APP, "Contents/MacOS/nico-apple-cal");
+export const CAL_SOURCE = resolve(dirname(import.meta.path), "../helpers/nico-apple-cal.swift");
 const CAL_TIMEOUT = 30_000;
 
 const readText = (path: string) => Bun.file(path).text().then(text => text.trim(), () => "");

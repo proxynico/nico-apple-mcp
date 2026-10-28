@@ -147,6 +147,8 @@ Example flow:
 2. Pick the right event from the results.
 3. Use its `eventId` to update or delete it.
 
+Every occurrence of a repeating event shares one `eventId`. To change one occurrence, also pass `windowStart` and `windowEnd` around it. An `eventId` alone for a repeating event is refused rather than guessed.
+
 Mutating Calendar, Notes, and Contacts tools also support `dryRun: true` where available, so your assistant can preview the action before changing anything.
 
 Notes and Contacts list/search results also include stable IDs. Prefer `noteId` and `contactId` for read, update, move, append, and delete operations. Exact title/name targeting remains available as a fallback, but duplicate titles or names are rejected rather than guessed.
@@ -177,6 +179,11 @@ If Calendar says `notDetermined` or denied:
 If Notes or Contacts fail:
 - check Automation permissions for the app running Nico Apple MCP
 - restart the MCP client after changing permissions
+
+If `doctor` says the calendar helper is older than its source:
+- run `bun run build:swift`
+- approve the Calendar prompt again, because macOS treats each build as a new app
+- restart the MCP client
 
 If tools disappeared or still use old behavior:
 - quit old Claude/Codex sessions

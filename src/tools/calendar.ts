@@ -92,7 +92,7 @@ const tools: ToolDef[] = [
   },
   {
     name: "calendar_update_event",
-    desc: "Update an existing event by event id or exact title, optionally narrowed by calendar and date window",
+    desc: "Update an existing event by event id or exact title, optionally narrowed by calendar and date window. For one occurrence of a repeating event, pass windowStart/windowEnd around that occurrence",
     annotations: { destructiveHint: false },
     params: {
       eventId: { type: "string", desc: "Apple Calendar event identifier" },
@@ -128,7 +128,7 @@ const tools: ToolDef[] = [
   },
   {
     name: "calendar_delete_event",
-    desc: "Delete an event by event id or exact title, optionally narrowed by calendar and date window",
+    desc: "Delete an event by event id or exact title, optionally narrowed by calendar and date window. For one occurrence of a repeating event, pass windowStart/windowEnd around that occurrence",
     annotations: { destructiveHint: true },
     params: {
       eventId: { type: "string", desc: "Apple Calendar event identifier" },
