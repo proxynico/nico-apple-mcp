@@ -4,12 +4,13 @@ import { toZodSchema } from "./types.ts";
 import calendar from "./tools/calendar.ts";
 import notes from "./tools/notes.ts";
 import contacts from "./tools/contacts.ts";
+import meetingPrep from "./tools/meetingPrep.ts";
 import doctor from "./tools/doctor.ts";
 import pkg from "../package.json" with { type: "json" };
 
 const server = new McpServer({ name: pkg.name, version: pkg.version });
 
-for (const def of [...calendar, ...notes, ...contacts, ...doctor]) {
+for (const def of [...calendar, ...notes, ...contacts, ...meetingPrep, ...doctor]) {
   server.registerTool(def.name, {
     description: def.desc,
     inputSchema: toZodSchema(def),

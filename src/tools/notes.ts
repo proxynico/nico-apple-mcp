@@ -16,6 +16,19 @@ const renderNoteBody = (title: string, body: string): string => {
   return `<h1>${safeTitle}</h1><br>${safeBody}`;
 };
 
+/** Create a plain-text note, in `folder` or the default account, and return its id and title. Notes titles a note with its first line, so the title goes only in the body: setting `name` as well showed it twice. */
+export function createNote({ title, body, folder }: { title: string; body: string; folder?: string }): Promise<string> {
+  const target = folder ? `folder "${esc(folder)}"` : "default account";
+  return runAppleScript(`
+    tell application "Notes"
+      tell ${target}
+        set n to make new note with properties {body:"${esc(renderNoteBody(title, body))}"}
+      end tell
+      return "Note created: " & id of n & " | " & name of n
+    end tell
+  `);
+}
+
 const noteTarget = (args: Record<string, unknown>): Record<string, unknown> =>
   args.noteId ? { noteId: args.noteId } : { title: args.title };
 
@@ -128,19 +141,8 @@ const tools: ToolDef[] = [
       dryRun: { type: "boolean", desc: "Preview the note without creating it" },
     },
     handle: async (a) => {
-      const rawTitle = a.title as string;
-      const title = esc(rawTitle);
-      const body = esc(renderNoteBody(rawTitle, a.body as string));
-      const target = a.folder ? `folder "${esc(a.folder as string)}"` : "default account";
-      if (a.dryRun) return dryRun("create note", { title: rawTitle, folder: a.folder ?? "default", body: a.body });
-      return runAppleScript(`
-        tell application "Notes"
-          tell ${target}
-            set n to make new note with properties {name:"${title}", body:"${body}"}
-          end tell
-          return "Note created: " & id of n & " | " & name of n
-        end tell
-      `);
+      if (a.dryRun) return dryRun("create note", { title: a.title, folder: a.folder ?? "default", body: a.body });
+      return createNote({ title: a.title as string, body: a.body as string, folder: a.folder as string | undefined });
     },
   },
   {
