@@ -6,9 +6,10 @@ import { runJXA, esc } from "../applescript.ts";
  * `query`. One Apple Event returns every contact's vCard, which holds that contact's id and names
  * together. Reading each contact's properties one by one took 20-100s, and joining per-property reads
  * by position paired ids with other contacts' names while Contacts was being edited. vCards turn
- * carriage returns into line feeds, so a contact whose fields hold a line break is read directly. Names
- * are matched with NSString's case-insensitive search, as Contacts' own `whose` filter does, because
- * that filter took up to 30s.
+ * carriage returns into line feeds, so a contact whose fields hold a line break is read directly, and
+ * left out if it was deleted after the cards were read (error -1728, no such object). Names are
+ * matched with NSString's case-insensitive search, as Contacts' own `whose` filter does, because that
+ * filter took up to 30s.
  */
 const listPeople = ({ query, limit, empty }: { query?: string; limit?: number; empty: string }) => `
   ObjC.import("Foundation");
@@ -35,7 +36,12 @@ const listPeople = ({ query, limit, empty }: { query?: string; limit?: number; e
     let fields = { firstName, lastName, org: components(props.ORG || "")[0], name: components(props.FN || "").join(";") };
     if (Object.values(fields).some(value => value.includes("\\n"))) {
       const p = people.byId(id);
-      fields = { firstName: p.firstName() || "", lastName: p.lastName() || "", org: p.organization() || "", name: p.name() || "" };
+      try {
+        fields = { firstName: p.firstName() || "", lastName: p.lastName() || "", org: p.organization() || "", name: p.name() || "" };
+      } catch (e) {
+        if (e.errorNumber === -1728) continue;
+        throw e;
+      }
     }
     ${query ? `if ($(fields.name).rangeOfStringOptions("${query}", $.NSCaseInsensitiveSearch).location === $.NSNotFound) continue;` : ""}
     const full = (fields.firstName + " " + fields.lastName).trim();
