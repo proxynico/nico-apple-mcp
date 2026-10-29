@@ -2,7 +2,7 @@
 
 ## Overview
 
-Nico Apple MCP is a single MCP (Model Context Protocol) server that exposes 22 tools for macOS Apple apps (Calendar, Notes, Contacts) via AppleScript, JXA, and EventKit. It uses **Bun** as its runtime, package manager, and test runner.
+Nico Apple MCP is a single MCP (Model Context Protocol) server that exposes 22 tools for macOS Apple apps (Calendar, Notes, Contacts) via AppleScript, JXA, and EventKit. Prefer EventKit over AppleScript for Calendar writes. It uses **Bun** as its runtime, package manager, and test runner.
 
 ## Prerequisites
 
@@ -19,7 +19,7 @@ See `package.json` `scripts` for the full list. Summary:
 | Type check | `bun run typecheck` |
 | Run tests | `bun run test` (runs typecheck first, then `bun test`) |
 | Start server | `bun run src/index.ts` |
-| Build Swift helper | `bun run build:swift` (requires macOS + swiftc) |
+| Build Swift helper | `bun run build:swift` after editing `src/helpers/nico-apple-cal.swift` (requires macOS + swiftc). Calendar runs the compiled helper, so a Swift edit is live only after this rebuild. |
 
 ## Linux and cloud agents
 
