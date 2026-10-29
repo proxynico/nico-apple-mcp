@@ -19,7 +19,7 @@ See `package.json` `scripts` for the full list. Summary:
 | Type check | `bun run typecheck` |
 | Run tests | `bun run test` (runs typecheck first, then `bun test`) |
 | Start server | `bun run src/index.ts` |
-| Build Swift helper | `bun run build:swift` (requires macOS + swiftc) |
+| Build Swift helper | `bun run build:swift` after editing `src/helpers/nico-apple-cal.swift` (requires macOS + swiftc). Calendar runs the compiled helper, so a Swift edit is live only after this rebuild. |
 
 ## Linux and cloud agents
 
