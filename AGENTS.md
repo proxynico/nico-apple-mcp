@@ -2,7 +2,7 @@
 
 ## Overview
 
-Nico Apple MCP is a single MCP (Model Context Protocol) server that exposes 22 tools for macOS Apple apps (Calendar, Notes, Contacts) via AppleScript, JXA, and EventKit. It uses **Bun** as its runtime, package manager, and test runner.
+Nico Apple MCP is a single MCP (Model Context Protocol) server that exposes 22 tools for macOS Apple apps (Calendar, Notes, Contacts) via AppleScript, JXA, and EventKit. Prefer EventKit over AppleScript for Calendar writes. It uses **Bun** as its runtime, package manager, and test runner.
 
 ## Prerequisites
 
