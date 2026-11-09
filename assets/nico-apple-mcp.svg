@@ -1,30 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
   <title id="title">Nico Apple MCP</title>
-  <desc id="desc">Three colored Apple app nodes connected through one central MCP hub</desc>
+  <desc id="desc">Calendar, Notes, and Contacts joined by one local hub.</desc>
   <defs>
     <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#263149"/>
-      <stop offset="1" stop-color="#090D18"/>
+      <stop stop-color="#24334B"/>
+      <stop offset="1" stop-color="#101827"/>
     </linearGradient>
-    <linearGradient id="highlight" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".18"/>
-      <stop offset=".42" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#02040A" flood-opacity=".34"/>
-    </filter>
   </defs>
-  <rect x="16" y="16" width="992" height="992" rx="225" fill="url(#background)" filter="url(#shadow)"/>
-  <rect x="28" y="28" width="968" height="968" rx="213" fill="url(#highlight)"/>
-  <g fill="none" stroke="#EAF0F8" stroke-width="52" stroke-linecap="round" opacity=".82">
-    <path d="M 300 300 L 512 512"/>
-    <path d="M 724 300 L 512 512"/>
-    <path d="M 512 732 L 512 512"/>
+  <rect x="32" y="32" width="960" height="960" rx="216" fill="url(#background)"/>
+  <rect x="34" y="34" width="956" height="956" rx="214" fill="none" stroke="#FFFFFF" stroke-opacity=".12" stroke-width="4"/>
+  <path d="M284 284 512 508 740 284 M512 508V740" fill="none" stroke="#EAF0F8" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="160" y="160" width="248" height="248" rx="62" fill="#FF706B"/>
+  <rect x="616" y="160" width="248" height="248" rx="62" fill="#FFDA67"/>
+  <rect x="388" y="616" width="248" height="248" rx="62" fill="#68B5FF"/>
+  <g fill="none" stroke="#FFF9F3" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="218" y="232" width="132" height="118" rx="20"/>
+    <path d="M218 270H350 M252 218V244 M316 218V244"/>
   </g>
-  <g stroke="#FFFFFF" stroke-opacity=".2" stroke-width="10">
-    <circle cx="300" cy="300" r="92" fill="#FF5F57"/>
-    <circle cx="724" cy="300" r="92" fill="#FFD84A"/>
-    <circle cx="512" cy="732" r="92" fill="#54A7FF"/>
+  <g fill="#FFF9F3">
+    <rect x="246" y="294" width="18" height="18" rx="4"/>
+    <rect x="280" y="294" width="18" height="18" rx="4"/>
+    <rect x="314" y="294" width="18" height="18" rx="4"/>
   </g>
-  <circle cx="512" cy="512" r="102" fill="#FFFFFF"/>
+  <path d="M682 240H798 M682 284H798 M682 328H756" fill="none" stroke="#664C20" stroke-width="18" stroke-linecap="round"/>
+  <g fill="#FFF9F3">
+    <circle cx="512" cy="702" r="29"/>
+    <path d="M456 792a56 56 0 0 1 112 0v9H456Z"/>
+    <circle cx="512" cy="508" r="72"/>
+  </g>
+  <circle cx="512" cy="508" r="28" fill="#19253A"/>
 </svg>

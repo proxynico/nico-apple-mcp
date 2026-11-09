@@ -187,6 +187,8 @@ bun run src/index.ts
 
 Before sending a change, also run `doctor` and a quick create, update, and delete on the apps you touched.
 
+The logo master is `assets/nico-apple-mcp.svg`; `assets/favicon.svg` keeps the same three-app silhouette with larger tiles and no fine detail for small sizes. On macOS, run `swift scripts/build-icons.swift` from the repository root to regenerate the PNG, ICO, and helper ICNS files, then `bun run build:swift` to copy the new icon into the helper app.
+
 ## License
 
 MIT
