@@ -10,11 +10,7 @@ const escapeHtml = (text: string): string =>
 const renderBodyFragment = (body: string): string =>
   escapeHtml(body).replace(/\r\n?/g, "\n").replace(/\n/g, "<br>");
 
-const renderNoteBody = (title: string, body: string): string => {
-  const safeTitle = escapeHtml(title);
-  const safeBody = renderBodyFragment(body);
-  return `<h1>${safeTitle}</h1><br>${safeBody}`;
-};
+const renderNoteBody = (title: string, body: string): string => `<h1>${escapeHtml(title)}</h1><br>${renderBodyFragment(body)}`;
 
 /** Create a plain-text note, in `folder` or the default account, and return its id and title. Notes titles a note with its first line, so the title goes only in the body: setting `name` as well showed it twice. */
 export function createNote({ title, body, folder }: { title: string; body: string; folder?: string }): Promise<string> {
@@ -238,24 +234,20 @@ const tools: ToolDef[] = [
     },
     superRefine: requireOneOf("noteId", "title"),
     handle: async (a) => {
-      const rawTitle = a.title as string | undefined;
-      const newTitleRaw = a.newTitle as string | undefined;
-      const newBodyRaw = a.newBody as string | undefined;
+      const newTitle = a.newTitle as string | undefined;
+      const newBody = a.newBody as string | undefined;
+      const heading = newTitle ?? (a.title as string | undefined);
       const updates: string[] = [];
-      if (newTitleRaw) updates.push(`set name of n to "${esc(newTitleRaw)}"`);
-      if (newBodyRaw !== undefined) {
-        const body = esc(renderBodyFragment(newBodyRaw));
-        if (newTitleRaw ?? rawTitle) {
-          const html = esc(renderNoteBody((newTitleRaw ?? rawTitle) as string, newBodyRaw));
-          updates.push(`set body of n to "${html}"`);
-        } else {
-          updates.push(`set body of n to "<h1>" & name of n & "</h1><br>${body}"`);
-        }
-      } else if (newTitleRaw) {
-        updates.push(replaceH1InBody(esc(escapeHtml(newTitleRaw))));
+      if (newTitle) updates.push(`set name of n to "${esc(newTitle)}"`);
+      if (newBody !== undefined) {
+        updates.push(heading
+          ? `set body of n to "${esc(renderNoteBody(heading, newBody))}"`
+          : `set body of n to "<h1>" & name of n & "</h1><br>${esc(renderBodyFragment(newBody))}"`);
+      } else if (newTitle) {
+        updates.push(replaceH1InBody(esc(escapeHtml(newTitle))));
       }
       if (!updates.length) throw new Error("No updates specified");
-      if (a.dryRun) return dryRun("update note", { target: noteTarget(a), newTitle: newTitleRaw, newBody: newBodyRaw });
+      if (a.dryRun) return dryRun("update note", { target: noteTarget(a), newTitle, newBody });
       return runAppleScript(`
         tell application "Notes"
           ${findNote(a)}

@@ -26,15 +26,15 @@ async function checkAutomation(appName: string, cmd: string[]): Promise<string> 
   return result;
 }
 
-async function checkExecutable(path: string): Promise<string> {
+async function checkExecutable(): Promise<string> {
   try {
-    await access(path, constants.X_OK);
+    await access(CAL_BIN, constants.X_OK);
   } catch {
-    return `FAIL calendar helper: missing or not executable at ${path}. Run bun run build:swift.`;
+    return `FAIL calendar helper: missing or not executable at ${CAL_BIN}. Run bun run build:swift.`;
   }
-  const [built, source] = await Promise.all([stat(path), stat(CAL_SOURCE)]);
+  const [built, source] = await Promise.all([stat(CAL_BIN), stat(CAL_SOURCE)]);
   if (built.mtimeMs < source.mtimeMs) return "WARN calendar helper: older than nico-apple-cal.swift. Run bun run build:swift.";
-  return `OK calendar helper: ${path}`;
+  return `OK calendar helper: ${CAL_BIN}`;
 }
 
 const PERMISSION_SUMMARY: Record<string, string> = {
@@ -73,7 +73,7 @@ const tools: ToolDef[] = [
         runCheck("osascript", ["osascript", "-e", "return \"ok\""], "available"),
         checkAutomation("Notes", ["osascript", "-e", "tell application \"Notes\" to count folders"]),
         checkAutomation("Contacts", ["osascript", "-l", "JavaScript", "-e", "Application(\"Contacts\").people.length"]),
-        checkExecutable(CAL_BIN).then(ready => calendarHelperDiagnostic(ready)),
+        checkExecutable().then(calendarHelperDiagnostic),
       ]);
       return [`OK bun: ${Bun.version}`, osascript, notes, contacts, ...calendar].join("\n");
     },

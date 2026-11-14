@@ -14,10 +14,10 @@ for (const def of [...calendar, ...notes, ...contacts, ...meetingPrep, ...doctor
   server.registerTool(def.name, {
     description: def.desc,
     inputSchema: toZodSchema(def),
-    ...(def.annotations ? { annotations: def.annotations } : {}),
+    annotations: def.annotations,
   }, async (raw) => {
     try {
-      return { content: [{ type: "text" as const, text: await def.handle(raw as Record<string, unknown>) }] };
+      return { content: [{ type: "text" as const, text: await def.handle(raw) }] };
     } catch (err) {
       return {
         content: [{ type: "text" as const, text: `Error: ${err instanceof Error ? err.message : "Unknown error"}` }],

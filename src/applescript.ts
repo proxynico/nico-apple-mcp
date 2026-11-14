@@ -14,8 +14,8 @@ export function esc(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t").replace(/"/g, '\\"');
 }
 
-async function run(flags: string[], script: string, timeout = TIMEOUT): Promise<string> {
-  const { stdout, stderr, exitCode } = await spawnWithTimeout([...flags, script], "osascript", timeout);
+async function run(flags: string[], script: string): Promise<string> {
+  const { stdout, stderr, exitCode } = await spawnWithTimeout([...flags, script], "osascript", TIMEOUT);
   if (exitCode !== 0) {
     const msg = stderr.trim() || `osascript exited with code ${exitCode}`;
     throw new Error(isPermissionError(msg) ? msg + PERM_HINT : msg);
@@ -23,5 +23,5 @@ async function run(flags: string[], script: string, timeout = TIMEOUT): Promise<
   return stdout.trim();
 }
 
-export const runAppleScript = (s: string, t?: number) => run(["osascript", "-e"], s, t);
-export const runJXA = (s: string, t?: number) => run(["osascript", "-l", "JavaScript", "-e"], s, t);
+export const runAppleScript = (s: string) => run(["osascript", "-e"], s);
+export const runJXA = (s: string) => run(["osascript", "-l", "JavaScript", "-e"], s);
