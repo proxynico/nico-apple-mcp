@@ -62,8 +62,26 @@ const findContact = (args: Record<string, unknown>, exactName = false) => {
   return `
   const matches = app.people.whose(${selector});
   if (matches.length === 0) throw new Error("Contact not found: ${label}");
-  if (matches.length > 1) throw new Error("Multiple contacts match: ${label}");`;
+  if (matches.length > 1) throw new Error("Multiple contacts match: ${label}");
+  const p = matches[0];`;
 };
+
+const setFirst = (list: "emails" | "phones", type: "Email" | "Phone", value: string) => `
+        if (p.${list}.length > 0) {
+          p.${list}[0].value = "${value}";
+        } else {
+          p.${list}.push(app.${type}({label: "work", value: "${value}"}));
+        }
+      `;
+
+const CONTACT_UPDATES: [string, (value: string) => string][] = [
+  ["newFirstName", value => `p.firstName = "${value}";`],
+  ["newLastName", value => `p.lastName = "${value}";`],
+  ["newOrg", value => `p.organization = "${value}";`],
+  ["newTitle", value => `p.jobTitle = "${value}";`],
+  ["newEmail", value => setFirst("emails", "Email", value)],
+  ["newPhone", value => setFirst("phones", "Phone", value)],
+];
 
 const tools: ToolDef[] = [
   {
@@ -100,7 +118,6 @@ const tools: ToolDef[] = [
       return runJXA(`
         const app = Application("Contacts");
         ${findContact(a)}
-        const p = matches[0];
         const lines = ["ID: " + p.id(), "Name: " + (p.firstName() || "") + " " + (p.lastName() || "")];
         const org = p.organization();
         if (org) lines.push("Organization: " + org);
@@ -129,16 +146,8 @@ const tools: ToolDef[] = [
     handle: async (a) => {
       const first = esc(a.firstName as string);
       const last = esc(a.lastName as string);
-      if (a.dryRun) {
-        return dryRun("create contact", {
-          firstName: a.firstName,
-          lastName: a.lastName,
-          email: a.email ?? "",
-          phone: a.phone ?? "",
-          org: a.org ?? "",
-          title: a.title ?? "",
-        });
-      }
+      const { dryRun: preview, ...details } = a;
+      if (preview) return dryRun("create contact", details);
       const props = [`firstName: "${first}"`, `lastName: "${last}"`];
       if (a.org) props.push(`organization: "${esc(a.org as string)}"`);
       if (a.title) props.push(`jobTitle: "${esc(a.title as string)}"`);
@@ -172,51 +181,15 @@ const tools: ToolDef[] = [
     },
     superRefine: requireOneOf("contactId", "name"),
     handle: async (a) => {
-      const updates: string[] = [];
-      const updateDetails: Record<string, unknown> = {};
-      if (a.newFirstName) {
-        updates.push(`p.firstName = "${esc(a.newFirstName as string)}";`);
-        updateDetails.newFirstName = a.newFirstName;
-      }
-      if (a.newLastName) {
-        updates.push(`p.lastName = "${esc(a.newLastName as string)}";`);
-        updateDetails.newLastName = a.newLastName;
-      }
-      if (a.newOrg !== undefined) {
-        updates.push(`p.organization = "${esc(a.newOrg as string)}";`);
-        updateDetails.newOrg = a.newOrg;
-      }
-      if (a.newTitle !== undefined) {
-        updates.push(`p.jobTitle = "${esc(a.newTitle as string)}";`);
-        updateDetails.newTitle = a.newTitle;
-      }
-      if (a.newEmail !== undefined) {
-        updates.push(`
-        if (p.emails.length > 0) {
-          p.emails[0].value = "${esc(a.newEmail as string)}";
-        } else {
-          p.emails.push(app.Email({label: "work", value: "${esc(a.newEmail as string)}"}));
-        }
-      `);
-        updateDetails.newEmail = a.newEmail;
-      }
-      if (a.newPhone !== undefined) {
-        updates.push(`
-        if (p.phones.length > 0) {
-          p.phones[0].value = "${esc(a.newPhone as string)}";
-        } else {
-          p.phones.push(app.Phone({label: "work", value: "${esc(a.newPhone as string)}"}));
-        }
-      `);
-        updateDetails.newPhone = a.newPhone;
-      }
-      if (!updates.length) throw new Error("No updates specified");
-      if (a.dryRun) return dryRun("update contact", { target: contactTarget(a), updates: updateDetails });
+      const given: Record<string, unknown> = { ...a, newFirstName: a.newFirstName || undefined, newLastName: a.newLastName || undefined };
+      const fields = CONTACT_UPDATES.filter(([key]) => given[key] !== undefined);
+      if (!fields.length) throw new Error("No updates specified");
+      const updates = Object.fromEntries(fields.map(([key]) => [key, a[key]]));
+      if (a.dryRun) return dryRun("update contact", { target: contactTarget(a), updates });
       return runJXA(`
         const app = Application("Contacts");
         ${findContact(a, true)}
-        const p = matches[0];
-        ${updates.join("\n")}
+        ${fields.map(([key, set]) => set(esc(a[key] as string))).join("\n")}
         app.save();
         "Contact updated: " + p.id() + " | " + p.name();
       `);
@@ -237,7 +210,6 @@ const tools: ToolDef[] = [
       return runJXA(`
         const app = Application("Contacts");
         ${findContact(a, true)}
-        const p = matches[0];
         const deletedId = p.id();
         const deletedName = p.name();
         app.delete(p);
