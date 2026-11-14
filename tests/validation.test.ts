@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { toZodSchema, toZodShape } from "../src/types.ts";
+import { toZodSchema } from "../src/types.ts";
 import type { ToolDef } from "../src/types.ts";
-import { z } from "zod";
 
 const mock: ToolDef = {
   name: "test_tool",
   desc: "test",
+  annotations: { readOnlyHint: true },
   params: {
     title: { type: "string", desc: "Title", req: true },
     count: { type: "number", desc: "Count", int: true, min: 0, max: 10 },
@@ -15,12 +15,12 @@ const mock: ToolDef = {
   handle: async () => "",
 };
 
-const noParams: ToolDef = { name: "empty", desc: "test", handle: async () => "" };
+const noParams: ToolDef = { name: "empty", desc: "test", annotations: { readOnlyHint: true }, handle: async () => "" };
 
-const parse = (def: ToolDef, input: unknown) => z.object(toZodShape(def)).parse(input);
-const ok = (def: ToolDef, input: unknown) => z.object(toZodShape(def)).safeParse(input).success;
+const parse = (def: ToolDef, input: unknown) => toZodSchema(def).parse(input);
+const ok = (def: ToolDef, input: unknown) => toZodSchema(def).safeParse(input).success;
 
-describe("toZodShape validation", () => {
+describe("toZodSchema validation", () => {
   test("passes valid required-only input", () => {
     expect(() => parse(mock, { title: "hi" })).not.toThrow();
   });
@@ -80,6 +80,6 @@ describe("toZodShape validation", () => {
   });
 
   test("rejects unknown fields", () => {
-    expect(toZodSchema(mock).safeParse({ title: "hi", dry_run: true }).success).toBe(false);
+    expect(ok(mock, { title: "hi", dry_run: true })).toBe(false);
   });
 });

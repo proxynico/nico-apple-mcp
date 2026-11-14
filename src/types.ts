@@ -21,7 +21,7 @@ export interface ToolAnnotations {
 export interface ToolDef {
   name: string;
   desc: string;
-  annotations?: ToolAnnotations;
+  annotations: ToolAnnotations;
   params?: Record<string, Param>;
   superRefine?: ToolSuperRefine;
   handle(args: Record<string, unknown>): Promise<string>;
@@ -62,16 +62,7 @@ function toZodType(p: Param): z.ZodType {
   return p.req ? schema : schema.optional();
 }
 
-export function toZodShape(def: ToolDef): Record<string, z.ZodType> {
-  const shape: Record<string, z.ZodType> = {};
-  for (const [k, p] of Object.entries(def.params ?? {})) {
-    shape[k] = toZodType(p);
-  }
-  return shape;
-}
-
 export function toZodSchema(def: ToolDef): z.ZodType<Record<string, unknown>> {
-  const schema = z.strictObject(toZodShape(def));
-  if (!def.superRefine) return schema as z.ZodType<Record<string, unknown>>;
-  return schema.superRefine((args, ctx) => def.superRefine?.(args, ctx));
+  const schema = z.strictObject(Object.fromEntries(Object.entries(def.params ?? {}).map(([key, p]) => [key, toZodType(p)])));
+  return def.superRefine ? schema.superRefine(def.superRefine) : schema;
 }
