@@ -91,6 +91,7 @@ const invalid: [string, Args][] = [
   ["contacts_list", { limit: 1.5 }],
   ["contacts_list", { limit: 1001 }],
   ["contacts_get", {}],
+  ["contacts_get", { name: 42 }],
   ["contacts_delete", {}],
 ];
 
