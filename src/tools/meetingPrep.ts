@@ -37,7 +37,7 @@ const READ_CARDS = String.raw`
   JSON.stringify(Application("Contacts").people.vcard().map(card =>
     card.replace(/\r?\n[ \t]/g, "").split(/\r?\n/).filter(line => keep.test(line)).join("\n")));`;
 
-const VCARD_LINE = /^(?:[\w-]+\.)?([\w-]+)(?:;[^:]*)?:(.*)$/;
+const VCARD_LINE = /^(?:[\w-]+\.)?([\w-]+)(?:;[^:]*)?:(.*)$/s;
 const unescapeVCard = (value: string) => value.replace(/\\([\\,;nN])/g, (_, c: string) => (c.toLowerCase() === "n" ? "\n" : c));
 /** Split a structured value such as N or ORG on its unescaped semicolons. */
 const vCardParts = (value: string) => value.split(/(?<!\\);/).map(unescapeVCard);
