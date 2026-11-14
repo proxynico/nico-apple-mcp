@@ -94,18 +94,10 @@ func ensureCalendarAccess(_ store: EKEventStore) {
   var granted = false
   var accessError: Error?
 
-  if #available(macOS 14.0, *) {
-    store.requestFullAccessToEvents { ok, err in
-      granted = ok
-      accessError = err
-      sem.signal()
-    }
-  } else {
-    store.requestAccess(to: .event) { ok, err in
-      granted = ok
-      accessError = err
-      sem.signal()
-    }
+  store.requestFullAccessToEvents { ok, err in
+    granted = ok
+    accessError = err
+    sem.signal()
   }
 
   if sem.wait(timeout: .now() + 20) == .timedOut {
@@ -244,11 +236,7 @@ func occurrences(from start: Date, to end: Date, calendars: [EKCalendar]?, store
 /// EventKit's lookup by eventIdentifier returns a repeating event's first occurrence, so a repeating
 /// event is found by searching a window around the occurrence instead.
 func targetOccurrence(_ options: Options, store: EKEventStore) -> EKEvent {
-  if (options.windowStartMs == nil) != (options.windowEndMs == nil) {
-    fail("--window-start-ms and --window-end-ms must be provided together")
-  }
   let window = options.windowStartMs.flatMap { start in options.windowEndMs.map { (dateFromMs(start), dateFromMs($0)) } }
-  if let window, window.0 >= window.1 { fail("--window-start-ms must be before --window-end-ms") }
 
   if let eventId = options.eventId, window == nil {
     guard let event = store.event(withIdentifier: eventId) else { fail("Event not found for eventId: \(eventId)") }
@@ -264,8 +252,7 @@ func targetOccurrence(_ options: Options, store: EKEventStore) -> EKEvent {
     return event
   }
 
-  guard options.eventId != nil || options.title != nil else { fail("Missing --event-id or --title") }
-  let label = options.title ?? "eventId \(options.eventId!)"
+  let label = options.title ?? "eventId \(options.eventId ?? "")"
   let (start, end) = window ?? (dateFromMs(0), Calendar.current.date(from: DateComponents(year: 2100, month: 1, day: 1))!)
   let matches = occurrences(
     from: start,
@@ -317,13 +304,13 @@ case "search" where options.startMs == nil && options.endMs == nil && options.ca
 
 case "search":
   guard let startMs = options.startMs, let endMs = options.endMs else { usage() }
-  let predicate = store.predicateForEvents(
-    withStart: dateFromMs(startMs),
-    end: dateFromMs(endMs),
-    calendars: options.calendarName.map { calendars(named: $0, in: store) }
-  )
-  var events = store.events(matching: predicate).sorted { $0.startDate < $1.startDate }
-  if let query = options.query, !query.isEmpty {
+  var events = occurrences(
+    from: dateFromMs(startMs),
+    to: dateFromMs(endMs),
+    calendars: options.calendarName.map { calendars(named: $0, in: store) },
+    store: store
+  ).sorted { $0.startDate < $1.startDate }
+  if let query = options.query {
     let needle = query.localizedLowercase
     events = events.filter { event in
       [event.title, event.location, event.notes].contains { $0?.localizedLowercase.contains(needle) == true }
@@ -345,9 +332,6 @@ case "create":
 
 case "update":
   let event = targetOccurrence(options, store: store)
-  if options.newTitle == nil && options.startMs == nil && options.endMs == nil && options.location == nil && options.notes == nil {
-    fail("No updates specified")
-  }
   if let newTitle = options.newTitle { event.title = newTitle }
   if let startMs = options.startMs { event.startDate = dateFromMs(startMs) }
   if let endMs = options.endMs { event.endDate = dateFromMs(endMs) }
