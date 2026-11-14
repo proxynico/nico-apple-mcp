@@ -13,11 +13,8 @@
   "homepage": "https://github.com/proxynico/nico-apple-mcp#readme",
   "scripts": {
     "build:swift": "mkdir -p src/helpers/NicoAppleMCPCalendarHelper.app/Contents/MacOS src/helpers/NicoAppleMCPCalendarHelper.app/Contents/Resources && swiftc -O src/helpers/nico-apple-cal.swift -o src/helpers/NicoAppleMCPCalendarHelper.app/Contents/MacOS/nico-apple-cal && cp src/helpers/nico-apple-cal.Info.plist src/helpers/NicoAppleMCPCalendarHelper.app/Contents/Info.plist && cp src/helpers/NicoAppleMCPCalendarHelper.icns src/helpers/NicoAppleMCPCalendarHelper.app/Contents/Resources/NicoAppleMCPCalendarHelper.icns && codesign --force --sign - --options runtime --entitlements src/helpers/nico-apple-cal.entitlements src/helpers/NicoAppleMCPCalendarHelper.app",
-    "start": "bun run src/index.ts",
     "typecheck": "bunx tsc --noEmit",
-    "test": "bunx tsc --noEmit && bun test",
-    "check": "bun run test",
-    "audit": "bun audit"
+    "test": "bunx tsc --noEmit && bun test"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
