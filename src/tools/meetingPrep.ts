@@ -18,9 +18,9 @@ const CalendarEvent = z.object({
   organizer: Person,
   attendees: z.array(Person.extend({ status: z.string(), type: z.string() })),
 });
-export type CalendarEvent = z.infer<typeof CalendarEvent>;
+type CalendarEvent = z.infer<typeof CalendarEvent>;
 
-export interface ContactCard {
+interface ContactCard {
   name: string;
   org: string;
   jobTitle: string;
@@ -86,7 +86,7 @@ const isPrepared = (event: CalendarEvent) =>
   event.status !== "canceled" && !event.attendees.some(p => p.isCurrentUser && p.status === "declined");
 
 /** Render a day's brief: each meeting with its people matched to Contacts, then everyone not in Contacts. */
-export function renderBrief({ day, events, contacts }: { day: Date; events: CalendarEvent[]; contacts: ContactCard[] }): { title: string; body: string } {
+function renderBrief({ day, events, contacts }: { day: Date; events: CalendarEvent[]; contacts: ContactCard[] }): { title: string; body: string } {
   const findContact = contactFinder(contacts);
   const meetings = events.filter(isPrepared);
   const unknown = new Map<string, string>();
@@ -125,11 +125,8 @@ export function renderBrief({ day, events, contacts }: { day: Date; events: Cale
 /** Local midnight at the start and end of `date`'s day, or tomorrow's when no date is given. */
 function dayRange(date?: string): { start: Date; end: Date } {
   const base = date ? new Date(isoToEpochMs(date)) : new Date();
-  const offset = date ? 0 : 1;
-  return {
-    start: new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset),
-    end: new Date(base.getFullYear(), base.getMonth(), base.getDate() + offset + 1),
-  };
+  const start = new Date(base.getFullYear(), base.getMonth(), base.getDate() + (date ? 0 : 1));
+  return { start, end: new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1) };
 }
 
 const tools: ToolDef[] = [
