@@ -20,7 +20,5 @@
   <string>0.1.0</string>
   <key>NSCalendarsFullAccessUsageDescription</key>
   <string>Nico Apple MCP needs full Calendar access to list, search, create, update, and delete events at your request.</string>
-  <key>NSCalendarsUsageDescription</key>
-  <string>Nico Apple MCP needs Calendar access to list, search, create, update, and delete events at your request.</string>
 </dict>
 </plist>

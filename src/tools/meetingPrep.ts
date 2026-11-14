@@ -37,7 +37,7 @@ const READ_CARDS = String.raw`
   JSON.stringify(Application("Contacts").people.vcard().map(card =>
     card.replace(/\r?\n[ \t]/g, "").split(/\r?\n/).filter(line => keep.test(line)).join("\n")));`;
 
-const VCARD_LINE = /^(?:[\w-]+\.)?([\w-]+)(?:;[^:]*)?:(.*)$/;
+const VCARD_LINE = /^(?:[\w-]+\.)?([\w-]+)(?:;[^:]*)?:(.*)$/s;
 const unescapeVCard = (value: string) => value.replace(/\\([\\,;nN])/g, (_, c: string) => (c.toLowerCase() === "n" ? "\n" : c));
 /** Split a structured value such as N or ORG on its unescaped semicolons. */
 const vCardParts = (value: string) => value.split(/(?<!\\);/).map(unescapeVCard);
@@ -145,12 +145,10 @@ const tools: ToolDef[] = [
       const { start, end } = dayRange(a.date as string | undefined);
       const args = ["--start-ms", String(start.getTime()), "--end-ms", String(end.getTime())];
       if (a.calendarName) args.push("--calendar", a.calendarName as string);
-      const [found, cards] = await Promise.all([
+      const [events, cards] = await Promise.all([
         runCalendarHelper(...args).then(out => z.object({ events: z.array(CalendarEvent) }).parse(JSON.parse(out)).events),
         runJXA(READ_CARDS).then(out => z.array(z.string()).parse(JSON.parse(out))),
       ]);
-      // EventKit also returns events that only touch the day, such as one ending at its midnight.
-      const events = found.filter(e => e.startMs < end.getTime() && e.endMs > start.getTime());
       if (!events.some(isPrepared)) return `No meetings on ${longDate(start)}.${a.saveNote ? " Nothing saved to Notes." : ""}`;
       const brief = renderBrief({ day: start, events, contacts: cards.map(parseVCard) });
       const text = `${brief.title}\n\n${brief.body}`;

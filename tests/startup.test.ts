@@ -15,7 +15,6 @@ test("calendar helper build embeds Calendar privacy usage descriptions", async (
   const plist = await Bun.file(`${ROOT}/src/helpers/nico-apple-cal.Info.plist`).text();
   expect(plist).toContain("com.proxynico.nico-apple-mcp.calendar-helper");
   expect(plist).toContain("NSCalendarsFullAccessUsageDescription");
-  expect(plist).toContain("NSCalendarsUsageDescription");
 
   const entitlements = await Bun.file(`${ROOT}/src/helpers/nico-apple-cal.entitlements`).text();
   expect(entitlements).toContain("com.apple.security.personal-information.calendars");
